@@ -1,10 +1,10 @@
 NAME	= ft_ping
-SRCS	= $(addprefix srcs/, main.c)
+SRCS	= $(addprefix srcs/, main.c utils.c options.c)
 OBJS	= $(SRCS:srcs/%.c=objs/%.o)
 DEPS	= $(SRCS:srcs/%.c=deps/%.d)
 
 CC		= gcc
-CFLAGS	= #-Wall -Werror -Wextra -g3 -Iincludes
+CFLAGS	= -Wall -Werror -Wextra -g3 -Iincludes
 DFLAGS	= -MT $@ -MMD -MP -MF deps/$*.d
 
 all: $(NAME)
@@ -20,7 +20,6 @@ clean:
 
 fclean: clean
 	rm -rf $(NAME)
-	rm -rf *.dSYM
 
 re: fclean all
 
