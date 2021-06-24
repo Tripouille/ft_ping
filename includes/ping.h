@@ -8,14 +8,16 @@
 # include <netinet/ip.h>
 # include <netinet/ip_icmp.h>
 # include <stdbool.h>
+# include <unistd.h>
 
 # include "utils.h"
 # include "options.h"
 
 typedef struct  s_ping_infos
 {
-    char *      host;
-    bool        active;
+	char *      host;
+	int			socket_fd;
+	bool        active;
 	t_option	options[OPTION_NUMBER];
 }               t_ping_infos;
 

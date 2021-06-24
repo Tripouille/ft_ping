@@ -62,19 +62,19 @@ main(int ac, char ** av) {
 	g_ping_infos.active = true;
 	initialize_options(g_ping_infos.options);
 	parse_arguments(av + 1);
-	if (g_ping_infos.host == NULL)
-		usage();
-	else if (get_option(g_ping_infos.options, 'h')->active)
+	if (g_ping_infos.host == NULL || get_option(g_ping_infos.options, 'h')->active)
 		usage();
 
-	// int socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
-    // if (socket_fd == -1)
-	// 	print_error_exit("Socket file descriptor not received");
+	g_ping_infos.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (g_ping_infos.socket_fd == -1)
+	 	print_error_exit("Socket file descriptor not received");
   
     signal(SIGINT, signal_handler);
 	print_options();
-	printf("host %s\n", g_ping_infos.host);
-
+	while (g_ping_infos.active) {
+		printf("ping -> %s\n", g_ping_infos.host);
+		sleep(1);
+	}
 	return (0);
 }
 

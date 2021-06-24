@@ -12,7 +12,6 @@ void
 initialize_options(t_option * options) {
     set_option(options++, 'v', false);
     set_option(options++, 'h', false);
-    set_option(options++, 'c', true);
 }
 
 t_option *
