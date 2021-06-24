@@ -11,7 +11,10 @@ signal_handler(int signal) {
 
 static void
 usage(void) {
-	print_error_exit("usage: ping [-vh] host");
+	char const *	message = "usage: ping [-vh] host";
+
+	fprintf(stderr, "%s\n", message);
+	exit(EXIT_FAILURE);
 }
 
 static void
@@ -59,7 +62,9 @@ main(int ac, char ** av) {
 	g_ping_infos.active = true;
 	initialize_options(g_ping_infos.options);
 	parse_arguments(av + 1);
-	if (g_ping_infos.host == NULL || get_option(g_ping_infos.options, 'h')->active)
+	if (g_ping_infos.host == NULL)
+		usage();
+	else if (get_option(g_ping_infos.options, 'h')->active)
 		usage();
 
 	// int socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);

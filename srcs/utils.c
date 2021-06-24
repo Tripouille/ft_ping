@@ -2,7 +2,7 @@
 
 void
 print_error_exit(char const * msg) {
-	dprintf(2, "%s\n", msg);
+	fprintf(stderr, "%s\n", msg);
 	exit(EXIT_FAILURE);
 }
 
