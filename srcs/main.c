@@ -6,6 +6,7 @@ static void
 signal_handler(int signal) {
 	(void)signal;
 	g_ping_infos.active = false;
+	printf("\rDone!\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -55,26 +56,44 @@ print_options(void) {
 	}
 }
 
-int
-main(int ac, char ** av) {
-	(void)ac;
+static void
+dns_lookup(void)
+{
+    struct hostent * host_entity;
+  
+    if ((host_entity = gethostbyname(g_ping_infos.host)) == NULL) {
+		fprintf(stderr, "ft_ping: %s: Name or service not known\n", g_ping_infos.host);
+		exit(EXIT_FAILURE);
+	}
+	inet_ntop(AF_INET, host_entity->h_addr, g_ping_infos.ip, sizeof(g_ping_infos.ip));
+    g_ping_infos.addr_con.sin_family = host_entity->h_addrtype;
+    g_ping_infos.addr_con.sin_port = htons(0);
+    g_ping_infos.addr_con.sin_addr.s_addr = *(in_addr_t*)host_entity->h_addr;
+}
+
+static void
+initialize(char ** av) {
 	g_ping_infos.host = NULL;
 	g_ping_infos.active = true;
 	initialize_options(g_ping_infos.options);
 	parse_arguments(av + 1);
-	if (g_ping_infos.host == NULL || get_option(g_ping_infos.options, 'h')->active)
+	if (g_ping_infos.host == NULL
+	|| get_option(g_ping_infos.options, 'h')->active)
 		usage();
-
 	g_ping_infos.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (g_ping_infos.socket_fd == -1)
 	 	print_error_exit("Socket file descriptor not received");
-  
-    signal(SIGINT, signal_handler);
+	signal(SIGINT, signal_handler);
 	print_options();
-	while (g_ping_infos.active) {
-		printf("ping -> %s\n", g_ping_infos.host);
-		sleep(1);
-	}
+}
+
+int
+main(int ac, char ** av) {
+	(void)ac;
+	initialize(av);
+	dns_lookup();
+    printf("Trying to connect to '%s' IP: %s\n", g_ping_infos.host, g_ping_infos.ip);
+
 	return (0);
 }
 
