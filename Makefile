@@ -23,11 +23,5 @@ fclean: clean
 
 re: fclean all
 
-db:
-	docker build -t mi .
-
-dr:
-	docker run -it --rm -v $(pwd):/project -w /project --name mc mi zsh
-
 .PHONY: all clean fclean re db dr
 -include $(DEPS)
