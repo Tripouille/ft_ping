@@ -57,8 +57,7 @@ print_options(void) {
 }
 
 static void
-dns_lookup(void)
-{
+dns_lookup(void) {
     struct hostent * host_entity;
   
     if ((host_entity = gethostbyname(g_ping_infos.host)) == NULL) {
@@ -87,13 +86,111 @@ initialize(char ** av) {
 	print_options();
 }
 
+unsigned short checksum(void *b, int len)
+{    unsigned short *buf = b;
+    unsigned int sum = 0;
+    unsigned short result;
+  
+    for ( sum = 0; len > 1; len -= 2 )
+        sum += *buf++;
+    if ( len == 1 )
+        sum += *(unsigned char*)buf;
+    sum = (sum >> 16) + (sum & 0xFFFF);
+    sum += (sum >> 16);
+    result = ~sum;
+    return result;
+}
+
+void
+send_ping(void) {
+    int ttl = 64, msg_count=0, flag=1,
+               msg_received_count=0;
+	socklen_t addr_len;
+    struct timeval tv_out;
+      
+    struct paquet pckt;
+    struct sockaddr_in r_addr;
+    struct timespec time_start, time_end, tfs, tfe;
+    long double rtt_msec=0, total_msec=0;
+
+  
+    clock_gettime(CLOCK_MONOTONIC, &tfs);
+    if (setsockopt(g_ping_infos.socket_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl)) != 0)
+        print_error_exit("Setting socket options to TTL failed!");
+  
+  
+    // setting timeout of recv setting
+    tv_out.tv_sec = 10; //RECV_TIMEOUT;
+    tv_out.tv_usec = 0;
+    setsockopt(g_ping_infos.socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char const*)&tv_out, sizeof tv_out);
+  
+    // send icmp packet in an infinite loop
+    while(g_ping_infos.active)
+    {
+        flag=1;
+        bzero(&pckt, sizeof(pckt));
+        pckt.hdr.type = ICMP_ECHO;
+        pckt.hdr.un.echo.id = getpid();
+          
+        for (unsigned long i = 0; i < sizeof(pckt.message)-1; i++ )
+            pckt.message[i] = i+'0';
+        pckt.hdr.un.echo.sequence = msg_count++;
+        pckt.hdr.checksum = checksum(&pckt, sizeof(pckt));
+  
+        sleep(1);
+  
+        clock_gettime(CLOCK_MONOTONIC, &time_start);
+        if (sendto(g_ping_infos.socket_fd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&g_ping_infos.addr_con, sizeof(g_ping_infos.addr_con)) <= 0)
+        {
+            printf("\nPacket Sending Failed!\n");
+            flag=0;
+        }
+  
+        //receive packet
+        addr_len=sizeof(r_addr);
+  
+        if (recvfrom(g_ping_infos.socket_fd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&r_addr, &addr_len) <= 0 && msg_count > 1) 
+        {
+            printf("\nPacket receive failed!\n");
+        }
+        else
+        {
+            clock_gettime(CLOCK_MONOTONIC, &time_end);
+              
+            double timeElapsed = ((double)(time_end.tv_nsec - time_start.tv_nsec)) / 1000000.0;
+            rtt_msec = (time_end.tv_sec - time_start.tv_sec) * 1000.0 + timeElapsed;
+              
+            // if packet was not sent, don't receive
+            if(flag)
+            {
+                if(!(pckt.hdr.type ==69 && pckt.hdr.code==0)) 
+                {
+                    printf("Error..Packet received with ICMP type %d code %d\n", pckt.hdr.type, pckt.hdr.code);
+                }
+                else
+                {
+                    printf("%d bytes from %s (%s) msg_seq=%d ttl=%d rtt = %Lf ms.\n", 42, g_ping_infos.host, g_ping_infos.ip, msg_count, ttl, rtt_msec);
+                    msg_received_count++;
+                }
+            }
+        }    
+    }
+    clock_gettime(CLOCK_MONOTONIC, &tfe);
+    double timeElapsed = ((double)(tfe.tv_nsec - tfs.tv_nsec)) / 1000000.0;
+    total_msec = (tfe.tv_sec-tfs.tv_sec) * 1000.0 + timeElapsed;        
+    printf("\n===%s ping statistics===\n", g_ping_infos.ip);
+	(void)total_msec;
+    //printf("\n%d packets sent, %d packets received, %f percentpacket loss. Total time: %Lf ms.\n\n", msg_count, msg_received_count, ((msg_count - msg_received_count)/msg_count) * 100.0,total_msec); 
+}
+
+
 int
 main(int ac, char ** av) {
 	(void)ac;
 	initialize(av);
 	dns_lookup();
     printf("Trying to connect to '%s' IP: %s\n", g_ping_infos.host, g_ping_infos.ip);
-
+	send_ping();
 	return (0);
 }
 

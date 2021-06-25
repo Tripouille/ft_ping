@@ -14,6 +14,8 @@
 # include <netinet/ip.h>
 # include <netinet/ip_icmp.h>
 # include <arpa/inet.h>
+# include <time.h>
+# include <strings.h>
 
 # include "utils.h"
 # include "options.h"
@@ -27,5 +29,12 @@ typedef struct  s_ping_infos
 	char					ip[NI_MAXHOST + 1];
 	bool        			active;
 }               t_ping_infos;
+
+
+struct paquet
+{
+    struct icmphdr	hdr;
+    char			message[42];
+};
 
 #endif
