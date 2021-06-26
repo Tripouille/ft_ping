@@ -1,12 +1,12 @@
 #include "ping.h"
 
-t_ping_infos	g_ping_infos;
+t_ping_infos	g_ping;
 
 static void
 signal_handler(int signal) {
 	(void)signal;
-	g_ping_infos.active = false;
-	printf("\rDone!\n");
+	g_ping.active = false;
+    fprintf(stderr, "\n--- %s ping statistics ---", g_ping.host);
 	exit(EXIT_SUCCESS);
 }
 
@@ -18,41 +18,34 @@ usage(void) {
 	exit(EXIT_FAILURE);
 }
 
-static void
+void
 parse_arguments(char ** args) {
 	t_option *		option;
 
 	for (int it = 0; args[it]; ++it) {
 		if (args[it][0] == '-') {
-			if (!args[it][1])
-				usage();
+			if (!args[it][1]) usage();
 			for (int is = 1; args[it][is]; ++is) {
-				option = get_option(g_ping_infos.options, args[it][is]);
-				if (option == NULL)
-					usage();
+				option = get_option(g_ping.options, args[it][is]);
+				if (option == NULL) usage();
 				option->active = true;
 				if (option->require_value) {
-					if (args[it][is + 1])
-						option->value = args[it] + is + 1;
-					else if (args[it + 1])
-						option->value = args[++it];
-					else
-						usage();
+					if (args[it][is + 1]) option->value = args[it] + is + 1;
+					else if (args[it + 1]) option->value = args[++it];
+					else usage();
 					break ;
 				}
 			}
 		}
-		else if (g_ping_infos.host == NULL)
-			g_ping_infos.host = args[it];
-		else
-			usage();
+		else if (g_ping.host == NULL) g_ping.host = args[it];
+		else usage();
 	}
 }
 
-static void
+void
 print_options(void) {
 	for (int i = 0; i < OPTION_NUMBER; ++i) {
-		printf("option %c: active = %i, value = %s\n", g_ping_infos.options[i].id, g_ping_infos.options[i].active, g_ping_infos.options[i].value);
+		printf("option %c: active = %i, value = %s\n", g_ping.options[i].id, g_ping.options[i].active, g_ping.options[i].value);
 	}
 }
 
@@ -61,129 +54,110 @@ dns_lookup(void) {
 	struct addrinfo * info;
 	struct sockaddr_in * address;
 
-    if (getaddrinfo(g_ping_infos.host, NULL, NULL, &info)) {
-		fprintf(stderr, "ping: %s: Name or service not known\n", g_ping_infos.host);
+    if (getaddrinfo(g_ping.host, NULL, NULL, &info)) {
+		fprintf(stderr, "ping: %s: Name or service not known\n", g_ping.host);
 		exit(EXIT_FAILURE);
 	}
 	address = (struct sockaddr_in*)info->ai_addr;
-	inet_ntop(AF_INET, &address->sin_addr, g_ping_infos.ip, sizeof(g_ping_infos.ip));
-    g_ping_infos.addr_con.sin_family = info->ai_family;
-    g_ping_infos.addr_con.sin_port = htons(0);
-    g_ping_infos.addr_con.sin_addr.s_addr = *(in_addr_t*)&address->sin_addr;
+	inet_ntop(AF_INET, &address->sin_addr, g_ping.ip, sizeof(g_ping.ip));
+    g_ping.addr_con.sin_family = info->ai_family;
+    g_ping.addr_con.sin_port = htons(0);
+    g_ping.addr_con.sin_addr.s_addr = *(in_addr_t*)&address->sin_addr;
 	freeaddrinfo(info);
 }
 
 static void
-initialize(char ** av) {
-	g_ping_infos.host = NULL;
-	g_ping_infos.active = true;
-	initialize_options(g_ping_infos.options);
+initialize_config(char ** av) {
+	g_ping.host = NULL;
+	initialize_options(g_ping.options);
 	parse_arguments(av + 1);
-	if (g_ping_infos.host == NULL
-	|| get_option(g_ping_infos.options, 'h')->active)
-		usage();
-	g_ping_infos.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (g_ping_infos.socket_fd == -1)
-	 	print_error_exit("Socket file descriptor not received");
+	if (g_ping.host == NULL || get_option(g_ping.options, 'h')->active) usage();
+	g_ping.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (g_ping.socket_fd == -1) print_error_exit("Socket file descriptor not received");
+    g_ping.pid = getpid();
+	g_ping.active = true;
+    g_ping.msg_count = 0;
+    g_ping.msg_received_count = 0;
 	signal(SIGINT, signal_handler);
 	print_options();
 }
 
-unsigned short checksum(void *b, int len)
-{    unsigned short *buf = b;
+static unsigned short
+checksum(void *b, int len) {   
+    unsigned short *buf = b;
     unsigned int sum = 0;
     unsigned short result;
   
-    for ( sum = 0; len > 1; len -= 2 )
+    for (sum = 0; len > 1; len -= 2)
         sum += *buf++;
-    if ( len == 1 )
-        sum += *(unsigned char*)buf;
+    if (len == 1) sum += *(unsigned char*)buf;
     sum = (sum >> 16) + (sum & 0xFFFF);
     sum += (sum >> 16);
     result = ~sum;
     return result;
 }
 
-void
-send_ping(void) {
-    int ttl = 64, msg_count = 0, flag = 1, msg_received_count = 0;
-    struct paquet pckt;
-    struct sockaddr_in r_addr;
-    struct timespec time_start, time_end, tfs, tfe;
-    long double rtt_msec=0, total_msec=0;
-	socklen_t addr_len;
-    struct timeval timeout = {10, 0};
+static void
+initialize_ping(void) {
+    struct timeval timeout = {10, 10};
 
-    clock_gettime(CLOCK_MONOTONIC, &tfs);
-    setsockopt(g_ping_infos.socket_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl));
-    setsockopt(g_ping_infos.socket_fd, SOL_SOCKET, SO_RCVTIMEO,
-				(char const*)&timeout, sizeof(timeout));
-
-    while(g_ping_infos.active)
-    {
-        flag=1;
-        bzero(&pckt, sizeof(pckt));
-        pckt.hdr.type = ICMP_ECHO;
-        pckt.hdr.un.echo.id = getpid();
-          
-        for (unsigned long i = 0; i < sizeof(pckt.message)-1; i++ )
-            pckt.message[i] = i+'0';
-        pckt.hdr.un.echo.sequence = msg_count++;
-        pckt.hdr.checksum = checksum(&pckt, sizeof(pckt));
-  
-        sleep(1);
-  
-        clock_gettime(CLOCK_MONOTONIC, &time_start);
-        if (sendto(g_ping_infos.socket_fd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&g_ping_infos.addr_con, sizeof(g_ping_infos.addr_con)) <= 0)
-        {
-            printf("\nPacket Sending Failed!\n");
-            flag=0;
-        }
-  
-        //receive packet
-        addr_len=sizeof(r_addr);
-  
-        if (recvfrom(g_ping_infos.socket_fd, &pckt, sizeof(pckt), 0, (struct sockaddr*)&r_addr, &addr_len) <= 0 && msg_count > 1) 
-        {
-            printf("\nPacket receive failed!\n");
-        }
-        else
-        {
-            clock_gettime(CLOCK_MONOTONIC, &time_end);
-              
-            double timeElapsed = ((double)(time_end.tv_nsec - time_start.tv_nsec)) / 1000000.0;
-            rtt_msec = (time_end.tv_sec - time_start.tv_sec) * 1000.0 + timeElapsed;
-              
-            // if packet was not sent, don't receive
-            if(flag)
-            {
-                if(!(pckt.hdr.type ==69 && pckt.hdr.code==0)) 
-                {
-                    printf("Error..Packet received with ICMP type %d code %d\n", pckt.hdr.type, pckt.hdr.code);
-                }
-                else
-                {
-                    printf("%d bytes from %s (%s) msg_seq=%d ttl=%d rtt = %Lf ms.\n", 42, g_ping_infos.host, g_ping_infos.ip, msg_count, ttl, rtt_msec);
-                    msg_received_count++;
-                }
-            }
-        }    
-    }
-    clock_gettime(CLOCK_MONOTONIC, &tfe);
-    double timeElapsed = ((double)(tfe.tv_nsec - tfs.tv_nsec)) / 1000000.0;
-    total_msec = (tfe.tv_sec-tfs.tv_sec) * 1000.0 + timeElapsed;        
-    printf("\n===%s ping statistics===\n", g_ping_infos.ip);
-	(void)total_msec;
-    //printf("\n%d packets sent, %d packets received, %f percentpacket loss. Total time: %Lf ms.\n\n", msg_count, msg_received_count, ((msg_count - msg_received_count)/msg_count) * 100.0,total_msec); 
+    g_ping.ttl = 64;
+    setsockopt(g_ping.socket_fd, SOL_IP, IP_TTL, &g_ping.ttl, sizeof(g_ping.ttl));
+    setsockopt(g_ping.socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
 
+static void
+initialize_packet(t_packet * packet) {
+    mset(packet, sizeof(packet), 0);
+    packet->hdr.type = ICMP_ECHO;
+    packet->hdr.un.echo.id = g_ping.pid;
+    packet->hdr.un.echo.sequence = g_ping.msg_count++;
+    packet->hdr.checksum = checksum(&packet, sizeof(packet));
+}
+
+static void
+send_ping(void) {
+    struct timespec time_start, time_end;
+    t_packet packet;
+    //struct sockaddr_in r_addr;
+    //socklen_t addr_len=sizeof(r_addr);
+
+    while(g_ping.active) {
+        initialize_packet(&packet);
+        clock_gettime(CLOCK_MONOTONIC, &time_start);
+        if (sendto(g_ping.socket_fd, &packet, sizeof(packet), 0,
+        (struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
+            struct msghdr msg;
+            mset(&msg, sizeof(msg), 0);
+            struct iovec iov = {&packet, PACKET_SIZE};
+            msg.msg_iov = &iov;
+            msg.msg_iovlen = 1;
+
+            if (recvmsg(g_ping.socket_fd, &msg, 0) != -1) {
+                clock_gettime(CLOCK_MONOTONIC, &time_end);
+                if (!(packet.hdr.type == 69 && packet.hdr.code == 0)) 
+                    printf("Error..Packet received with ICMP type %d code %d\n", packet.hdr.type, packet.hdr.code);
+                else {
+                    printf("%ld bytes from %s (%s) msg_seq=%ld ttl=%d rtt = %f ms.\n", PACKET_SIZE,
+                            g_ping.host, g_ping.ip, g_ping.msg_count, g_ping.ttl, 0.1);
+                    g_ping.msg_received_count++;
+                }
+            }
+            else
+                printf("oups\n");
+        }
+        sleep(1);
+    }
+}
 
 int
 main(int ac, char ** av) {
 	(void)ac;
-	initialize(av);
+	initialize_config(av);
 	dns_lookup();
-    printf("Trying to connect to '%s' IP: %s\n", g_ping_infos.host, g_ping_infos.ip);
+    printf("PING %s (%s) %i(%li) bytes of data.\n", g_ping.host, g_ping.ip,
+            PACKET_MESSAGE, IPV4_HEADER + PACKET_SIZE);
+    initialize_ping();
 	send_ping();
 	return (0);
 }

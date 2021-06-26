@@ -20,6 +20,16 @@
 # include "utils.h"
 # include "options.h"
 
+# define IPV4_HEADER 20
+# define PACKET_MESSAGE 56
+# define PACKET_SIZE (PACKET_MESSAGE + sizeof(struct icmphdr))
+
+typedef struct	s_packet
+{
+    struct icmphdr	hdr;
+    char			message[PACKET_SIZE];
+}				t_packet;
+
 typedef struct  s_ping_infos
 {
 	char *      			host;
@@ -28,13 +38,10 @@ typedef struct  s_ping_infos
 	t_option				options[OPTION_NUMBER];
 	char					ip[NI_MAXHOST + 1];
 	bool        			active;
+	int						ttl;
+	int						pid;
+	size_t					msg_count;
+	size_t					msg_received_count;
 }               t_ping_infos;
-
-
-struct paquet
-{
-    struct icmphdr	hdr;
-    char			message[42];
-};
 
 #endif

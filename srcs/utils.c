@@ -18,3 +18,9 @@ is_full_digit(char const * s) {
 			return (false);
 	return (true);
 }
+
+void
+mset(void * m, size_t size, char value) {
+	while (size--)
+		((char*)m)[size] = value;
+}

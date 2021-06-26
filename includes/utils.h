@@ -14,4 +14,7 @@ is_digit(char c);
 bool
 is_full_digit(char const * s);
 
+void
+mset(void * m, size_t size, char value);
+
 #endif
