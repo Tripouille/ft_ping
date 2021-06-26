@@ -1,5 +1,5 @@
 NAME	= ft_ping
-SRCS	= $(addprefix srcs/, main.c utils.c options.c)
+SRCS	= $(addprefix srcs/, main.c utils.c options.c initialize.c parsing.c)
 OBJS	= $(SRCS:srcs/%.c=objs/%.o)
 DEPS	= $(SRCS:srcs/%.c=deps/%.d)
 

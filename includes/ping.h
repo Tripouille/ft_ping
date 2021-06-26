@@ -6,7 +6,6 @@
 # include <unistd.h>
 # include <stdbool.h>
 # include <fcntl.h>
-# include <signal.h>
 # include <sys/types.h>
 # include <sys/socket.h>
 # include <netdb.h>
@@ -17,7 +16,6 @@
 # include <time.h>
 # include <string.h>
 
-# include "utils.h"
 # include "options.h"
 
 # define IPV4_HEADER 20
@@ -43,5 +41,7 @@ typedef struct  s_ping_infos
 	size_t					msg_count;
 	size_t					msg_received_count;
 }               t_ping_infos;
+
+extern t_ping_infos g_ping;
 
 #endif
