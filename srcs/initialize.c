@@ -43,11 +43,11 @@ initialize_socket(void) {
 
 void
 initialize_packet(t_packet * packet) {
-    mset(packet, sizeof(packet), 0);
+    mset(packet, sizeof(*packet), 0);
     packet->hdr.type = ICMP_ECHO;
     packet->hdr.un.echo.id = g_ping.pid;
     packet->hdr.un.echo.sequence = g_ping.msg_count++;
-    packet->hdr.checksum = checksum(&packet, sizeof(packet));
+    packet->hdr.checksum = checksum(packet, sizeof(*packet));
 }
 
 void

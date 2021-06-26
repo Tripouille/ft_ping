@@ -39,16 +39,12 @@ send_ping(void) {
             initialize_msg(&msg, &iov);
             if (recvmsg(g_ping.socket_fd, &msg, 0) != -1) {
                 gettimeofday(&end, NULL);
-                if (!(packet.hdr.type == 69 && packet.hdr.code == 0)) 
-                    printf("Error..Packet received with ICMP type %d code %d\n", packet.hdr.type, packet.hdr.code);
-                else {
+                if ((packet.hdr.type == 69 && packet.hdr.code == 0)) {
                     printf("%ld bytes from %s (%s) msg_seq=%ld ttl=%d time=%.3f ms.\n", PACKET_SIZE,
                             g_ping.host, g_ping.ip, g_ping.msg_count, g_ping.ttl, get_elapsed_us(&start, &end) / 1E3);
                     g_ping.msg_received_count++;
                 }
             }
-            else
-                printf("oups\n");
         }
         sleep(1);
     }
