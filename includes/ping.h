@@ -15,7 +15,7 @@
 # include <netinet/ip_icmp.h>
 # include <arpa/inet.h>
 # include <time.h>
-# include <strings.h>
+# include <string.h>
 
 # include "utils.h"
 # include "options.h"

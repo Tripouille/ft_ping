@@ -58,16 +58,19 @@ print_options(void) {
 
 static void
 dns_lookup(void) {
-    struct hostent * host_entity;
-  
-    if ((host_entity = gethostbyname(g_ping_infos.host)) == NULL) {
-		fprintf(stderr, "ft_ping: %s: Name or service not known\n", g_ping_infos.host);
+	struct addrinfo * info;
+	struct sockaddr_in * address;
+
+    if (getaddrinfo(g_ping_infos.host, NULL, NULL, &info)) {
+		fprintf(stderr, "ping: %s: Name or service not known\n", g_ping_infos.host);
 		exit(EXIT_FAILURE);
 	}
-	inet_ntop(AF_INET, host_entity->h_addr, g_ping_infos.ip, sizeof(g_ping_infos.ip));
-    g_ping_infos.addr_con.sin_family = host_entity->h_addrtype;
+	address = (struct sockaddr_in*)info->ai_addr;
+	inet_ntop(AF_INET, &address->sin_addr, g_ping_infos.ip, sizeof(g_ping_infos.ip));
+
+    g_ping_infos.addr_con.sin_family = info->ai_family;
     g_ping_infos.addr_con.sin_port = htons(0);
-    g_ping_infos.addr_con.sin_addr.s_addr = *(in_addr_t*)host_entity->h_addr;
+    g_ping_infos.addr_con.sin_addr.s_addr = *(in_addr_t*)&address->sin_addr;
 }
 
 static void
@@ -103,28 +106,19 @@ unsigned short checksum(void *b, int len)
 
 void
 send_ping(void) {
-    int ttl = 64, msg_count=0, flag=1,
-               msg_received_count=0;
-	socklen_t addr_len;
-    struct timeval tv_out;
-      
+    int ttl = 64, msg_count = 0, flag = 1, msg_received_count = 0;
     struct paquet pckt;
     struct sockaddr_in r_addr;
     struct timespec time_start, time_end, tfs, tfe;
     long double rtt_msec=0, total_msec=0;
+	socklen_t addr_len;
+    struct timeval timeout = {10, 0};
 
-  
     clock_gettime(CLOCK_MONOTONIC, &tfs);
-    if (setsockopt(g_ping_infos.socket_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl)) != 0)
-        print_error_exit("Setting socket options to TTL failed!");
-  
-  
-    // setting timeout of recv setting
-    tv_out.tv_sec = 10; //RECV_TIMEOUT;
-    tv_out.tv_usec = 0;
-    setsockopt(g_ping_infos.socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char const*)&tv_out, sizeof tv_out);
-  
-    // send icmp packet in an infinite loop
+    setsockopt(g_ping_infos.socket_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl));
+    setsockopt(g_ping_infos.socket_fd, SOL_SOCKET, SO_RCVTIMEO,
+				(char const*)&timeout, sizeof(timeout));
+
     while(g_ping_infos.active)
     {
         flag=1;
