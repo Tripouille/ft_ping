@@ -21,7 +21,10 @@
 
 # define IPV4_HEADER 20
 # define PACKET_MESSAGE 56
-# define PACKET_SIZE (PACKET_MESSAGE + sizeof(struct icmphdr))
+# define PACKET_SIZE (sizeof(struct icmphdr) + PACKET_MESSAGE)
+# define TOTAL_PACKET_SIZE (IPV4_HEADER + PACKET_SIZE)
+# define PING_REQUEST_TIMEOUT_US (1E6)
+# define PING_REQUEST_DELAY_US (1E6)
 
 typedef struct	s_packet
 {
