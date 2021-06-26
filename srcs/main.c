@@ -24,29 +24,26 @@ dns_lookup(void) {
 
 static void
 send_ping(void) {
-    struct timespec time_start, time_end;
     t_packet packet;
+    struct timeval start, end;
 
     printf("PING %s (%s) %i(%li) bytes of data.\n", g_ping.host, g_ping.ip,
             PACKET_MESSAGE, IPV4_HEADER + PACKET_SIZE);
     while(g_ping.active) {
         initialize_packet(&packet);
-        clock_gettime(CLOCK_MONOTONIC, &time_start);
+        gettimeofday(&start, NULL);
         if (sendto(g_ping.socket_fd, &packet, sizeof(packet), 0,
         (struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
             struct msghdr msg;
-            mset(&msg, sizeof(msg), 0);
             struct iovec iov = {&packet, PACKET_SIZE};
-            msg.msg_iov = &iov;
-            msg.msg_iovlen = 1;
-
+            initialize_msg(&msg, &iov);
             if (recvmsg(g_ping.socket_fd, &msg, 0) != -1) {
-                clock_gettime(CLOCK_MONOTONIC, &time_end);
+                gettimeofday(&end, NULL);
                 if (!(packet.hdr.type == 69 && packet.hdr.code == 0)) 
                     printf("Error..Packet received with ICMP type %d code %d\n", packet.hdr.type, packet.hdr.code);
                 else {
-                    printf("%ld bytes from %s (%s) msg_seq=%ld ttl=%d rtt = %f ms.\n", PACKET_SIZE,
-                            g_ping.host, g_ping.ip, g_ping.msg_count, g_ping.ttl, 0.1);
+                    printf("%ld bytes from %s (%s) msg_seq=%ld ttl=%d time=%.3f ms.\n", PACKET_SIZE,
+                            g_ping.host, g_ping.ip, g_ping.msg_count, g_ping.ttl, get_elapsed_us(&start, &end) / 1E3);
                     g_ping.msg_received_count++;
                 }
             }
@@ -62,7 +59,7 @@ main(int ac, char ** av) {
 	(void)ac;
 	initialize_config(av);
 	dns_lookup();
-    initialize_ping();
+    initialize_socket();
 	send_ping();
 	return (0);
 }

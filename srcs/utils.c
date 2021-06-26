@@ -39,3 +39,8 @@ checksum(void *b, int len) {
     result = ~sum;
     return result;
 }
+
+size_t
+get_elapsed_us(struct timeval const * start, struct timeval const * end) {
+    return ((end->tv_sec - start->tv_sec) * 1E6 + (end->tv_usec - start->tv_usec));
+}

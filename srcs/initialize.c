@@ -32,8 +32,8 @@ initialize_config(char ** av) {
 }
 
 void
-initialize_ping(void) {
-    struct timeval timeout = {10, 10};
+initialize_socket(void) {
+    struct timeval timeout = {1, 0};
 
     g_ping.ttl = 64;
     setsockopt(g_ping.socket_fd, SOL_IP, IP_TTL, &g_ping.ttl, sizeof(g_ping.ttl));
@@ -48,4 +48,11 @@ initialize_packet(t_packet * packet) {
     packet->hdr.un.echo.id = g_ping.pid;
     packet->hdr.un.echo.sequence = g_ping.msg_count++;
     packet->hdr.checksum = checksum(&packet, sizeof(packet));
+}
+
+void
+initialize_msg(struct msghdr * msg, struct iovec * iov) {
+	mset(msg, sizeof(*msg), 0);
+	msg->msg_iov = iov;
+	msg->msg_iovlen = 1;
 }

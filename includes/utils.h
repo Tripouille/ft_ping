@@ -28,4 +28,7 @@ parse_arguments(char ** args);
 void
 usage(void);
 
+size_t
+get_elapsed_us(struct timeval const * start, struct timeval const * end);
+
 #endif

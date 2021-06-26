@@ -13,7 +13,7 @@
 # include <netinet/ip.h>
 # include <netinet/ip_icmp.h>
 # include <arpa/inet.h>
-# include <time.h>
+# include <sys/time.h>
 # include <string.h>
 
 # include "options.h"
