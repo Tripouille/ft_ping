@@ -67,10 +67,10 @@ dns_lookup(void) {
 	}
 	address = (struct sockaddr_in*)info->ai_addr;
 	inet_ntop(AF_INET, &address->sin_addr, g_ping_infos.ip, sizeof(g_ping_infos.ip));
-
     g_ping_infos.addr_con.sin_family = info->ai_family;
     g_ping_infos.addr_con.sin_port = htons(0);
     g_ping_infos.addr_con.sin_addr.s_addr = *(in_addr_t*)&address->sin_addr;
+	freeaddrinfo(info);
 }
 
 static void
