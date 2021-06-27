@@ -11,7 +11,7 @@ void
 initialize_socket(void);
 
 void
-initialize_packet(t_packet * packet);
+initialize_packet(void * packet, size_t packet_size);
 
 void
 initialize_msg(struct msghdr * msg, struct iovec * iov);

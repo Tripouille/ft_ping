@@ -1,6 +1,5 @@
 #include "parsing.h"
 
-
 void
 parse_arguments(char ** args) {
 	t_option *		option;
@@ -27,7 +26,7 @@ parse_arguments(char ** args) {
 
 void
 usage(void) {
-	char const *	message = "usage: ping [-vh] host";
+	char const *	message = "usage: ping [-vh] [-s <size>] host";
 
 	fprintf(stderr, "%s\n", message);
 	exit(EXIT_FAILURE);

@@ -4,6 +4,7 @@
 # include <stdlib.h>
 # include <stdbool.h>
 # include <stddef.h>
+# include <limits.h>
 
 # include "ping.h"
 
@@ -30,5 +31,8 @@ usage(void);
 
 size_t
 get_elapsed_us(struct timeval const * start, struct timeval const * end);
+
+int
+parse_int(char const *s, int min, int max);
 
 #endif

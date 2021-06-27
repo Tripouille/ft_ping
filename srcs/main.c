@@ -23,46 +23,59 @@ dns_lookup(void) {
 }
 
 static bool
-wait_ping_reply(struct timeval const * start, struct timeval * end) {
-	char			recv_buffer[TOTAL_PACKET_SIZE];
-	t_packet		recv_packet;
+wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packet_size) {
+	char *				recv_buffer = malloc(IPV4_HEADER + packet_size);
+	struct icmphdr *	header;
 
+	if (recv_buffer == NULL) print_error_exit("ft_ping: Out of memory");
 	struct msghdr msg;
-	struct iovec iov = {recv_buffer, TOTAL_PACKET_SIZE};
+	struct iovec iov = {recv_buffer, IPV4_HEADER + packet_size};
 	initialize_msg(&msg, &iov);
-	if (recvmsg(g_ping.socket_fd, &msg, MSG_WAITALL) != -1) {
-		recv_packet = *(t_packet*)(recv_buffer + IPV4_HEADER);
-		if (recv_packet.hdr.type == ICMP_ECHOREPLY && recv_packet.hdr.code == ICMP_ECHOREPLY
-		&& recv_packet.hdr.un.echo.id == g_ping.pid) {
+	if (recvmsg(g_ping.socket_fd, &msg, 0) != -1) {
+		header = (struct icmphdr*)(recv_buffer + IPV4_HEADER);
+		if (header->type == ICMP_ECHOREPLY && header->code == ICMP_ECHOREPLY
+		&& header->un.echo.id == g_ping.pid) {
 			gettimeofday(end, NULL);
-			printf("%ld bytes from %s (%s) msg_seq=%ld ttl=%d time=%.3f ms.\n", PACKET_SIZE,
-					g_ping.host, g_ping.ip, g_ping.msg_count, g_ping.ttl, get_elapsed_us(start, end) / 1E3);
+			double time = get_elapsed_us(start, end) / 1E3;
+			g_ping.total += time;
+			if (time > g_ping.max) g_ping.max = time;
+			if (time < g_ping.min) g_ping.min = time;
+			printf("%li bytes from %s (%s) msg_seq=%li ttl=%i time=%.3f ms.\n", packet_size,
+				g_ping.host, g_ping.ip, g_ping.msg_count, recv_buffer[8], time);
 			g_ping.msg_received_count++;
+			free(recv_buffer);
 			return (false);
 		}
 	}
+	free(recv_buffer);
 	return (true);
 }
 
 static void
 send_ping_request(void) {
-	t_packet		send_packet;
-	struct timeval	start, end, now;
+	size_t				packet_size = sizeof(struct icmphdr) + g_ping.packet_msg_size;
+	struct timeval		start, end, now;
 
-	printf("PING %s (%s) %i(%li) bytes of data.\n", g_ping.host, g_ping.ip,
-			PACKET_MESSAGE, IPV4_HEADER + PACKET_SIZE);
-	initialize_packet(&send_packet);
-	while(g_ping.active) {
+	g_ping.sent_packet = malloc(packet_size);
+	if (g_ping.sent_packet == NULL) print_error_exit("ft_ping: Out of memory");
+	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip,
+		g_ping.packet_msg_size, (size_t)IPV4_HEADER + packet_size);
+	initialize_packet(g_ping.sent_packet, packet_size);
+	gettimeofday(&g_ping.start, NULL);
+	while(true) {
 		gettimeofday(&start, NULL);
 		now = start;
-		if (sendto(g_ping.socket_fd, &send_packet, sizeof(send_packet), 0,
-		(struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1)
-			while (wait_ping_reply(&start, &end)
+		if (sendto(g_ping.socket_fd, g_ping.sent_packet, packet_size, 0,
+		(struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
+			while (wait_ping_reply(&start, &end, packet_size)
 			&& get_elapsed_us(&start, &now) < PING_REQUEST_TIMEOUT_US)
 				gettimeofday(&now, NULL);
+		}
 		while (get_elapsed_us(&start, &now) < PING_REQUEST_DELAY_US)
 			gettimeofday(&now, NULL);
 		g_ping.msg_count++;
+		struct timeval	now;
+		gettimeofday(&now, NULL);
 	}
 }
 
