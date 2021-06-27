@@ -37,7 +37,6 @@ typedef struct  s_ping_infos
 	size_t					packet_msg_size;
 	char *					sent_packet;
 
-	double					min, max, total, mdev;
 	struct timeval			start;
 }               t_ping_infos;
 

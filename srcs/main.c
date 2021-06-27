@@ -39,8 +39,8 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 			double time = get_elapsed_us(start, end) / 1E3;
 			g_ping.total += time;
 			if (time > g_ping.max) g_ping.max = time;
-			if (time < g_ping.min) g_ping.min = time;
-			printf("%li bytes from %s (%s) msg_seq=%li ttl=%i time=%.3f ms.\n", packet_size,
+			if (time < g_ping.min || g_ping.min < 0.0) g_ping.min = time;
+			printf("%li bytes from %s (%s) msg_seq=%li ttl=%i time=%.1f ms.\n", packet_size,
 				g_ping.host, g_ping.ip, g_ping.msg_count, recv_buffer[8], time);
 			g_ping.msg_received_count++;
 			free(recv_buffer);
@@ -59,7 +59,7 @@ send_ping_request(void) {
 	g_ping.sent_packet = malloc(packet_size);
 	if (g_ping.sent_packet == NULL) print_error_exit("ft_ping: Out of memory");
 	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip,
-		g_ping.packet_msg_size, (size_t)IPV4_HEADER + packet_size);
+		g_ping.packet_msg_size, IPV4_HEADER + packet_size);
 	initialize_packet(g_ping.sent_packet, packet_size);
 	gettimeofday(&g_ping.start, NULL);
 	while(true) {

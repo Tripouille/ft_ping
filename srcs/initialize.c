@@ -14,9 +14,13 @@ signal_handler(int signal) {
 
 	gettimeofday(&now, NULL);
     printf("\n--- %s ping statistics ---\n", g_ping.host);
-	printf("%li packets transmitted, %li received, %g%% packet loss, time %.fms",
+	printf("%li packets transmitted, %li received, %g%% packet loss, time %.fms\n",
 		g_ping.msg_count, g_ping.msg_received_count, 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
-		get_elapsed_us(&g_ping.start, &now) / 1E3);	
+		get_elapsed_us(&g_ping.start, &now) / 1E3);
+	if (g_ping.msg_received_count) {
+		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
+			g_ping.min, g_ping.total / g_ping.msg_received_count, g_ping.max, 0.42); //faire la liste chaine
+	}
 	free(g_ping.sent_packet);
 	exit(EXIT_SUCCESS);
 }
@@ -35,6 +39,7 @@ void
 initialize_config(char ** av) {
 	mset(&g_ping, sizeof(g_ping), 0);
 	g_ping.packet_msg_size = 56;
+	g_ping.min = -1;
 	initialize_options(g_ping.options);
 	parse_arguments(av + 1);
 	apply_options();
