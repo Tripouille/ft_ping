@@ -19,14 +19,15 @@ signal_handler(int signal) {
 		get_elapsed_us(&g_ping.start, &now) / 1E3);
 	if (g_ping.msg_received_count) {
 		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
-			g_ping.min, g_ping.total / g_ping.msg_received_count, g_ping.max, 0.42); //faire la liste chaine
+			1.0, 2.0, 3.0, 0.42); //faire la liste chaine
 	}
 	free(g_ping.sent_packet);
+	list_destroy(&g_ping.stats);
 	exit(EXIT_SUCCESS);
 }
 
 static void
-apply_options(void) {
+initialize_options(void) {
 	t_option *		option;
 
 	if ((option = get_option(g_ping.options, 's'))->active) {
@@ -34,23 +35,6 @@ apply_options(void) {
 	}
 }
 
-
-void
-initialize_config(char ** av) {
-	mset(&g_ping, sizeof(g_ping), 0);
-	g_ping.packet_msg_size = 56;
-	g_ping.min = -1;
-	initialize_options(g_ping.options);
-	parse_arguments(av + 1);
-	apply_options();
-	if (g_ping.host == NULL || get_option(g_ping.options, 'h')->active) usage();
-	g_ping.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (g_ping.socket_fd == -1) print_error_exit("Socket file descriptor not received");
-    g_ping.pid = getpid();
-    g_ping.msg_count = 1;
-	signal(SIGINT, signal_handler);
-	print_options();
-}
 
 void
 initialize_socket(void) {
@@ -78,4 +62,21 @@ initialize_msg(struct msghdr * msg, struct iovec * iov) {
 	mset(msg, sizeof(*msg), 0);
 	msg->msg_iov = iov;
 	msg->msg_iovlen = 1;
+}
+
+void
+initialize_config(char ** av) {
+	mset(&g_ping, sizeof(g_ping), 0);
+	g_ping.packet_msg_size = 56;
+	load_available_options(g_ping.options);
+	parse_arguments(av + 1);
+	initialize_options();
+	if (g_ping.host == NULL || get_option(g_ping.options, 'h')->active) usage();
+	g_ping.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (g_ping.socket_fd == -1) print_error_exit("Socket file descriptor not received");
+    g_ping.pid = getpid();
+    g_ping.msg_count = 1;
+	list_initialize(&g_ping.stats);
+	signal(SIGINT, signal_handler);
+	print_options();
 }

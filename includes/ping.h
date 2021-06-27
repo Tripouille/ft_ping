@@ -18,6 +18,7 @@
 # include <string.h>
 
 # include "options.h"
+# include "list.h"
 
 # define IPV4_HEADER 20
 # define PING_REQUEST_TIMEOUT_US (1E6)
@@ -36,7 +37,7 @@ typedef struct  s_ping_infos
 	size_t					msg_received_count;
 	size_t					packet_msg_size;
 	char *					sent_packet;
-
+	t_list					stats;
 	struct timeval			start;
 }               t_ping_infos;
 

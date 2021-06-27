@@ -3,7 +3,7 @@
 # define OPTION_NUMBER 3
 # include <stdbool.h>
 # include <stddef.h>
-
+# include <limits.h>
 
 typedef struct	s_option
 {
@@ -14,7 +14,7 @@ typedef struct	s_option
 }				t_option;
 
 void
-initialize_options(t_option * options);
+load_available_options(t_option * options);
 
 t_option *
 get_option(t_option options[], char id);

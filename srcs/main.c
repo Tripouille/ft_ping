@@ -37,9 +37,11 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 		&& header->un.echo.id == g_ping.pid) {
 			gettimeofday(end, NULL);
 			double time = get_elapsed_us(start, end) / 1E3;
-			g_ping.total += time;
-			if (time > g_ping.max) g_ping.max = time;
-			if (time < g_ping.min || g_ping.min < 0.0) g_ping.min = time;
+			if (list_push(&g_ping.stats, time) == NULL) {
+				free(g_ping.sent_packet);
+				free(recv_buffer);
+				print_error_exit("ft_ping: Out of memory");
+			}
 			printf("%li bytes from %s (%s) msg_seq=%li ttl=%i time=%.1f ms.\n", packet_size,
 				g_ping.host, g_ping.ip, g_ping.msg_count, recv_buffer[8], time);
 			g_ping.msg_received_count++;

@@ -9,7 +9,7 @@ set_option(t_option * option, char id, bool require_value) {
 }
 
 void
-initialize_options(t_option * options) {
+load_available_options(t_option * options) {
     set_option(options++, 'v', false);
     set_option(options++, 'h', false);
     set_option(options++, 's', true);
