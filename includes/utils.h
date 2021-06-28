@@ -21,7 +21,7 @@ void
 mset(void * m, size_t size, char value);
 
 unsigned short
-checksum(void *b, int len);
+checksum(void * data, size_t len);
 
 void
 parse_arguments(char ** args);

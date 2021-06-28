@@ -2,6 +2,9 @@
 
 void
 print_error_exit(char const * msg) {
+	free(g_ping.sent_packet);
+	free(g_ping.recv_buffer);
+	list_destroy(&g_ping.stats);
 	fprintf(stderr, "%s\n", msg);
 	exit(EXIT_FAILURE);
 }
@@ -14,30 +17,25 @@ is_digit(char c) {
 bool
 is_full_digit(char const * s) {
 	for (int i = 0; s[i]; ++i)
-		if (!is_digit(s[i]))
-			return (false);
+		if (!is_digit(s[i])) return (false);
 	return (true);
 }
 
 void
 mset(void * m, size_t size, char value) {
-	while (size--)
-		((char*)m)[size] = value;
+	while (size--) ((char*)m)[size] = value;
 }
 
 unsigned short
-checksum(void *b, int len) {   
-	unsigned short *buf = b;
-	unsigned int sum = 0;
-	unsigned short result;
+checksum(void * data, size_t len) {   
+	unsigned short const * buffer = data;
+	unsigned int sum;
   
-	for (sum = 0; len > 1; len -= 2)
-		sum += *buf++;
-	if (len == 1) sum += *(unsigned char*)buf;
+	for (sum = 0; len > 1; len -= 2) sum += *buffer++;
+	if (len == 1) sum += *(unsigned char*)buffer;
 	sum = (sum >> 16) + (sum & 0xFFFF);
 	sum += (sum >> 16);
-	result = ~sum;
-	return result;
+	return (~sum);
 }
 
 size_t
@@ -46,7 +44,7 @@ get_elapsed_us(struct timeval const * start, struct timeval const * end) {
 }
 
 int
-parse_int(char const *s, int min, int max)
+parse_int(char const * s, int min, int max)
 {
 	long		value = 0;
 	size_t	i = (s[0] == '-' || s[0] == '+') ? 1 : 0;;

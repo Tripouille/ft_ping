@@ -30,7 +30,9 @@ double					list_pop(t_list *list);
 t_list_element			*list_unshift(t_list *list, double data);
 double					list_shift(t_list *list);
 
-t_list_element			*list_get_smallest(t_list const *list);
-t_list_element			*list_get_biggest(t_list const *list);
+double					list_get_smallest(t_list const *list);
+double					list_get_biggest(t_list const *list);
+double					list_get_average(t_list const *list);
+double					list_get_mdev(t_list const * list);
 
 #endif

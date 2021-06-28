@@ -17,11 +17,13 @@ signal_handler(int signal) {
 	printf("%li packets transmitted, %li received, %g%% packet loss, time %.fms\n",
 		g_ping.msg_count, g_ping.msg_received_count, 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
 		get_elapsed_us(&g_ping.start, &now) / 1E3);
-	if (g_ping.msg_received_count) {
-		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
-			1.0, 2.0, 3.0, 0.42); //faire la liste chaine
+	if (g_ping.stats.size) {
+		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
+			list_get_smallest(&g_ping.stats), list_get_average(&g_ping.stats),
+			list_get_biggest(&g_ping.stats), list_get_mdev(&g_ping.stats));
 	}
 	free(g_ping.sent_packet);
+	free(g_ping.recv_buffer);
 	list_destroy(&g_ping.stats);
 	exit(EXIT_SUCCESS);
 }
@@ -78,5 +80,5 @@ initialize_config(char ** av) {
     g_ping.msg_count = 1;
 	list_initialize(&g_ping.stats);
 	signal(SIGINT, signal_handler);
-	print_options();
+	print_options(); // <---- debug
 }
