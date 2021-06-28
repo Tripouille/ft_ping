@@ -10,7 +10,7 @@ reverse_dns_lookup(char const * ip_addr) {
     struct sockaddr_in addr_in;    
   
     addr_in.sin_family = AF_INET;
-    addr_in.sin_addr.s_addr = inet_addr(ip_addr);
+	inet_pton(AF_INET, ip_addr, &addr_in.sin_addr.s_addr);
     return (!getnameinfo((struct sockaddr*)&addr_in, sizeof(struct sockaddr_in),
 	g_ping.reverse_dns, sizeof(g_ping.reverse_dns), NULL, 0, NI_NAMEREQD));
 }
