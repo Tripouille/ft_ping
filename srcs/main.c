@@ -32,6 +32,23 @@ dns_lookup(void) {
 	freeaddrinfo(info);
 }
 
+static char const * 
+get_type_information(int type) {
+	if (type == ICMP_DEST_UNREACH) return ("Destination Unreachable");
+	if (type == ICMP_SOURCE_QUENCH)	return ("Source Quench");
+	if (type == ICMP_REDIRECT) return ("Redirect (change route)");
+	if (type == ICMP_ECHO) return ("Echo Request"); 
+	if (type == ICMP_TIME_EXCEEDED)	return ("Time to live exceeded");
+	if (type == ICMP_PARAMETERPROB)	return ("Parameter Problem");
+	if (type == ICMP_TIMESTAMP)	return ("Timestamp Request");
+	if (type == ICMP_TIMESTAMPREPLY) return ("Timestamp Reply");
+	if (type == ICMP_INFO_REQUEST) return ("Information Request");
+	if (type == ICMP_INFO_REPLY) return ("Information Reply");
+	if (type == ICMP_ADDRESS) return ("Address Mask Request");
+	if (type == ICMP_ADDRESSREPLY) return ("Address Mask Reply");
+	return ("Unknow type");
+}
+
 static void
 wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packet_size) {
 	struct iphdr *			ip_header;
@@ -57,12 +74,12 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 			if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
 			if (reverse_dns_lookup(sender_ip))
 				printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
-						recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
-						icmp_header->un.echo.sequence, ip_header->ttl, time);
+					recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
+					icmp_header->un.echo.sequence, ip_header->ttl, time);
 			else
 				printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
-							recv_packet_size - IPV4_HEADER, sender_ip,
-							icmp_header->un.echo.sequence, ip_header->ttl, time);
+					recv_packet_size - IPV4_HEADER, sender_ip,
+					icmp_header->un.echo.sequence, ip_header->ttl, time);
 			if (icmp_header->un.echo.sequence > g_ping.last_sequence_received) {
 				g_ping.last_sequence_received = icmp_header->un.echo.sequence;
 				++g_ping.msg_received_count;
@@ -71,6 +88,12 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 				++g_ping.duplicate;
 				printf(" (DUP!)\n");
 			}
+		} else if (icmp_header->code == ICMP_ECHOREPLY) {
+			if (get_option(g_ping.options, 'v')->active)
+				printf("From %s (%s) icmp_seq=%li %s\n",
+					reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
+					g_ping.msg_count, get_type_information(icmp_header->type));
+			++g_ping.error;
 		}
 	}
 }

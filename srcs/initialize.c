@@ -16,6 +16,7 @@ signal_handler(int signal) {
     printf("\n--- %s ping statistics ---\n", g_ping.host);
 	printf("%li packets transmitted, %li received, ", g_ping.msg_count, g_ping.msg_received_count);
 	if (g_ping.duplicate) printf("+%li duplicates, ", g_ping.duplicate);
+	if (g_ping.error) printf("+%li errors, ", g_ping.error);
 	printf("%g%% packet loss, time %.fms\n", 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
 			get_elapsed_us(&g_ping.start, &now) / 1E3);
 	if (g_ping.stats.size) {
@@ -33,8 +34,11 @@ static void
 initialize_options(void) {
 	t_option *		option;
 
-	if ((option = get_option(g_ping.options, 's'))->active) {
+	if ((option = get_option(g_ping.options, 's'))->active)
 		g_ping.packet_msg_size = parse_int(option->value, 0, INT_MAX);
+	if ((option = get_option(g_ping.options, 't'))->active) {
+		g_ping.ttl = parse_int(option->value, 0, 255);
+		if (!g_ping.ttl) print_error_exit("ft_ping: cannot set unicast time-to-live: Invalid argument");
 	}
 }
 
@@ -42,9 +46,8 @@ initialize_options(void) {
 void
 initialize_socket(void) {
     struct timeval	timeout = {0, 1E3};
-	int				ttl = TTL;
 
-    setsockopt(g_ping.socket_fd, SOL_IP, IP_TTL, &ttl, sizeof(ttl));
+    setsockopt(g_ping.socket_fd, SOL_IP, IP_TTL, &g_ping.ttl, sizeof(g_ping.ttl));
     setsockopt(g_ping.socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
 
@@ -71,6 +74,7 @@ void
 initialize_config(char ** av) {
 	mset(&g_ping, sizeof(g_ping), 0);
 	g_ping.packet_msg_size = 56;
+	g_ping.ttl = 64;
 	load_available_options(g_ping.options);
 	parse_arguments(av + 1);
 	initialize_options();

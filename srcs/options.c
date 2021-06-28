@@ -13,6 +13,7 @@ load_available_options(t_option * options) {
     set_option(options++, 'v', false);
     set_option(options++, 'h', false);
     set_option(options++, 's', true);
+    set_option(options++, 't', true);
 }
 
 t_option *

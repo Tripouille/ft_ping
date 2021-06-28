@@ -26,7 +26,7 @@ parse_arguments(char ** args) {
 
 void
 usage(void) {
-	char const *	message = "usage: ping [-vh] [-s <size>] host";
+	char const *	message = "usage: ping [-vh] [-s <size>] [-t ttl] host";
 
 	fprintf(stderr, "%s\n", message);
 	exit(EXIT_FAILURE);
