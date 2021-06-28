@@ -14,9 +14,10 @@ signal_handler(int signal) {
 
 	gettimeofday(&now, NULL);
     printf("\n--- %s ping statistics ---\n", g_ping.host);
-	printf("%li packets transmitted, %li received, %g%% packet loss, time %.fms\n",
-		g_ping.msg_count, g_ping.msg_received_count, 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
-		get_elapsed_us(&g_ping.start, &now) / 1E3);
+	printf("%li packets transmitted, %li received, ", g_ping.msg_count, g_ping.msg_received_count);
+	if (g_ping.duplicate) printf("+%li duplicates, ", g_ping.duplicate);
+	printf("%g%% packet loss, time %.fms\n", 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
+			get_elapsed_us(&g_ping.start, &now) / 1E3);
 	if (g_ping.stats.size) {
 		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
 			list_get_smallest(&g_ping.stats), list_get_average(&g_ping.stats),

@@ -20,7 +20,6 @@
 # include "list.h"
 
 # define IPV4_HEADER 20
-# define PING_REQUEST_TIMEOUT_US (1E6)
 # define PING_REQUEST_DELAY_US (1E6)
 # define TTL 64
 # define OPTION_NUMBER 3
@@ -50,6 +49,8 @@ typedef struct  s_ping_infos
 	t_list					stats;
 	struct timeval			start;
 	char					reverse_dns[NI_MAXHOST];
+	int						last_sequence_received;
+	size_t					duplicate;
 }               t_ping_infos;
 
 extern t_ping_infos g_ping;

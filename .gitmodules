@@ -1,3 +1,0 @@
-[submodule "debian-env"]
-	path = debian-env
-	url = https://github.com/Tripouille/debian-env.git

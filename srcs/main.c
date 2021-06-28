@@ -32,7 +32,7 @@ dns_lookup(void) {
 	freeaddrinfo(info);
 }
 
-static bool
+static void
 wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packet_size) {
 	struct iphdr *			ip_header;
 	struct icmphdr *		icmp_header;
@@ -56,18 +56,23 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 			double time = get_elapsed_us(start, end) / 1E3;
 			if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
 			if (reverse_dns_lookup(sender_ip))
-				printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms.\n",
+				printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
 						recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
 						icmp_header->un.echo.sequence, ip_header->ttl, time);
 			else
-				printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms.\n",
+				printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
 							recv_packet_size - IPV4_HEADER, sender_ip,
 							icmp_header->un.echo.sequence, ip_header->ttl, time);
-			g_ping.msg_received_count++;
-			return (false);
+			if (icmp_header->un.echo.sequence > g_ping.last_sequence_received) {
+				g_ping.last_sequence_received = icmp_header->un.echo.sequence;
+				++g_ping.msg_received_count;
+				printf("\n");
+			} else {
+				++g_ping.duplicate;
+				printf(" (DUP!)\n");
+			}
 		}
 	}
-	return (true);
 }
 
 static void
@@ -95,12 +100,11 @@ send_ping_request(void) {
 		now = start;
 		if (sendto(g_ping.socket_fd, g_ping.sent_packet, packet_size, 0,
 		(struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
-			while (wait_ping_reply(&start, &end, packet_size)
-			&& get_elapsed_us(&start, &now) < PING_REQUEST_TIMEOUT_US)
+			while (get_elapsed_us(&start, &now) < PING_REQUEST_DELAY_US) {
+				wait_ping_reply(&start, &end, packet_size);
 				gettimeofday(&now, NULL);
+			}
 		}
-		while (get_elapsed_us(&start, &now) < PING_REQUEST_DELAY_US)
-			gettimeofday(&now, NULL);
 		actualize_packet(g_ping.sent_packet, packet_size);
 	}
 }
