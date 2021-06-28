@@ -5,6 +5,16 @@
 
 t_ping_infos	g_ping;
 
+static bool
+reverse_dns_lookup(char const * ip_addr) {
+    struct sockaddr_in addr_in;    
+  
+    addr_in.sin_family = AF_INET;
+    addr_in.sin_addr.s_addr = inet_addr(ip_addr);
+    return (!getnameinfo((struct sockaddr*)&addr_in, sizeof(struct sockaddr_in),
+	g_ping.reverse_dns, sizeof(g_ping.reverse_dns), NULL, 0, NI_NAMEREQD));
+}
+
 static void
 dns_lookup(void) {
 	struct addrinfo * info;
@@ -24,25 +34,35 @@ dns_lookup(void) {
 
 static bool
 wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packet_size) {
-	struct icmphdr *	header;
-	ssize_t				recv_packet_size;
+	struct iphdr *			ip_header;
+	struct icmphdr *		icmp_header;
+	ssize_t					recv_packet_size;
+	char					sender_ip[NI_MAXHOST];
 
 	struct msghdr msg;
 	struct iovec iov = {g_ping.recv_buffer, IPV4_HEADER + packet_size};
 	initialize_msg(&msg, &iov);
 	if ((recv_packet_size = recvmsg(g_ping.socket_fd, &msg, 0)) != -1) {
-		header = (struct icmphdr*)(g_ping.recv_buffer + IPV4_HEADER);
-		uint16_t recv_checksum = header->checksum;
-		header->checksum = 0;
-		if (header->type == ICMP_ECHOREPLY && header->code == ICMP_ECHOREPLY
-		&& header->un.echo.id == g_ping.pid
-		&& checksum(header, recv_packet_size - IPV4_HEADER) == recv_checksum) {
+		ip_header = g_ping.recv_buffer;
+		icmp_header = g_ping.recv_buffer + IPV4_HEADER;
+		uint16_t recv_checksum = icmp_header->checksum;
+
+		icmp_header->checksum = 0;
+		inet_ntop(AF_INET, &ip_header->saddr, sender_ip, sizeof(sender_ip));
+		if (icmp_header->type == ICMP_ECHOREPLY && icmp_header->code == ICMP_ECHOREPLY
+		&& icmp_header->un.echo.id == g_ping.pid
+		&& checksum(icmp_header, recv_packet_size - IPV4_HEADER) == recv_checksum) {
 			gettimeofday(end, NULL);
 			double time = get_elapsed_us(start, end) / 1E3;
 			if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
-			printf("%li bytes from %s (%s) msg_seq=%i ttl=%i time=%.1f ms.\n",
-					recv_packet_size - IPV4_HEADER, g_ping.host, g_ping.ip,
-					header->un.echo.sequence, g_ping.recv_buffer[8], time);
+			if (reverse_dns_lookup(sender_ip))
+				printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms.\n",
+						recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
+						icmp_header->un.echo.sequence, ip_header->ttl, time);
+			else
+				printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms.\n",
+							recv_packet_size - IPV4_HEADER, sender_ip,
+							icmp_header->un.echo.sequence, ip_header->ttl, time);
 			g_ping.msg_received_count++;
 			return (false);
 		}

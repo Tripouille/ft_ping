@@ -40,15 +40,16 @@ typedef struct  s_ping_infos
 	int						socket_fd;
 	struct sockaddr_in		addr_con;
 	t_option				options[OPTION_NUMBER];
-	char					ip[NI_MAXHOST + 1];
+	char					ip[NI_MAXHOST];
 	int						pid;
 	size_t					msg_count;
 	size_t					msg_received_count;
 	size_t					packet_msg_size;
 	void *					sent_packet;
-	char *					recv_buffer;
+	void *					recv_buffer;
 	t_list					stats;
 	struct timeval			start;
+	char					reverse_dns[NI_MAXHOST];
 }               t_ping_infos;
 
 extern t_ping_infos g_ping;
