@@ -51,10 +51,13 @@ get_type_information(int type) {
 
 static void
 display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
-	if (get_option(g_ping.options, 'v')->active)
-		printf("From %s (%s) icmp_seq=%li %s\n",
-			reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
-			g_ping.msg_count, get_type_information(icmp_header->type));
+	if (get_option(g_ping.options, 'v')->active) {
+		if (!get_option(g_ping.options, 'n')->active)
+			printf("From %s (%s) icmp_seq=%li %s\n", reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
+				g_ping.msg_count, get_type_information(icmp_header->type));
+		else
+			printf("From %s icmp_seq=%li %s\n", sender_ip, g_ping.msg_count, get_type_information(icmp_header->type));
+	}
 }
 
 static void
@@ -107,7 +110,8 @@ wait_ping_reply(size_t packet_size) {
 				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
 			tracker->received = true;
 		} else if (icmp_header->code == ICMP_ECHOREPLY) {
-			display_type_information(icmp_header, sender_ip);
+			if (!get_option(g_ping.options, 'q')->active)
+				display_type_information(icmp_header, sender_ip);
 			++g_ping.error;
 		}
 	}

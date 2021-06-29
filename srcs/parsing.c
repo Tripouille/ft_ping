@@ -36,7 +36,7 @@ usage(void) {
 									"  -q                 quiet output\n"
 									"  -s <size>          use <size> as number of data bytes to be sent\n"
 									"  -t <ttl>           define time to live\n"
-									"  -v                 verbose output\n";
+									"  -v                 Verbose output.  ICMP packets other than ECHO_RESPONSE that are received are listed\n";
 
 	fprintf(stderr, "%s\n", message);
 	exit(EXIT_FAILURE);

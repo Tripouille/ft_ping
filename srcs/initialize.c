@@ -1,12 +1,5 @@
 #include "initialize.h"
 
-static void
-print_options(void) {
-	for (int i = 0; i < OPTION_NUMBER; ++i) {
-		printf("option %c: active = %i, value = %s\n", g_ping.options[i].id, g_ping.options[i].active, g_ping.options[i].value);
-	}
-}
-
 static bool
 packet_has_been_received(void) {
 	for (t_list_element * element = g_ping.stats.head;
@@ -107,5 +100,4 @@ initialize_config(char ** av) {
     g_ping.pid = getpid();
 	list_initialize(&g_ping.stats);
 	signal(SIGINT, display_statistics_exit);
-	print_options(); // <---- debug
 }
