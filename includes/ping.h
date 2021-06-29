@@ -19,7 +19,7 @@
 
 # include "list.h"
 
-# define OPTION_NUMBER 6
+# define OPTION_NUMBER 8
 
 typedef struct	s_option
 {

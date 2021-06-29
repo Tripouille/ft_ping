@@ -60,7 +60,7 @@ display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
 static void
 display_reply(double time, struct iphdr * ip_header, struct icmphdr * icmp_header,
 char const * sender_ip, size_t recv_packet_size, bool already_received) {
-	if (reverse_dns_lookup(sender_ip))
+	if (!get_option(g_ping.options, 'n')->active && reverse_dns_lookup(sender_ip))
 		printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), g_ping.reverse_dns, sender_ip,
 			icmp_header->un.echo.sequence, ip_header->ttl, time);
@@ -103,7 +103,8 @@ wait_ping_reply(size_t packet_size) {
 			if (tracker == NULL) return ;
 			gettimeofday(&now, NULL);
 			tracker->travel_time = get_elapsed_us(&tracker->sent_timeval, &now) / 1E3;
-			display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
+			if (!get_option(g_ping.options, 'q')->active)
+				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
 			tracker->received = true;
 		} else if (icmp_header->code == ICMP_ECHOREPLY) {
 			display_type_information(icmp_header, sender_ip);

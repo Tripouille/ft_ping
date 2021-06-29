@@ -30,7 +30,6 @@ usage(void) {
 									"  ping [options] <destination>\n"
 								"Options:\n"
 									"  -c <count>         stop after <count> replies\n"
-									"  -D                 print timestamps\n"
 									"  -h                 print help and exit\n"
 									"  -i <interval>      seconds between sending each packet\n"
 									"  -n                 no dns name resolution\n"
