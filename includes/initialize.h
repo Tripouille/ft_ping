@@ -7,6 +7,8 @@
 # include "utils.h"
 # include "options.h"
 
+void
+display_statistics_exit(int signal);
 
 void
 initialize_config(char ** av);

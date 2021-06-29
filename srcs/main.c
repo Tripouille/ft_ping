@@ -132,7 +132,8 @@ send_ping_request(void) {
 	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip, g_ping.packet_msg_size, sizeof(struct iphdr) + packet_size);
 	initialize_packet(g_ping.sent_packet_tracker, packet_size);
 	gettimeofday(&g_ping.start, NULL);
-	while(true) {
+	while(g_ping.msg_count < g_ping.count || !get_option(g_ping.options, 'c')->active) {
+		actualize_packet(g_ping.sent_packet_tracker, packet_size);
 		gettimeofday(&tracker.sent_timeval, NULL);
 		tracker.sequence = g_ping.msg_count;
 		tracker.received = false;
@@ -145,8 +146,8 @@ send_ping_request(void) {
 				gettimeofday(&now, NULL);
 			} while (get_elapsed_us(&tracker.sent_timeval, &now) / 1E6 < g_ping.interval_second);
 		}
-		actualize_packet(g_ping.sent_packet_tracker, packet_size);
 	}
+	display_statistics_exit(0);
 }
 
 int

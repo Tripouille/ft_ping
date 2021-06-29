@@ -26,7 +26,18 @@ parse_arguments(char ** args) {
 
 void
 usage(void) {
-	char const *	message = "usage: ping [-vh] [-s <size>] [-t ttl] host";
+	char const *	message =	"Usage\n"
+									"  ping [options] <destination>\n"
+								"Options:\n"
+									"  -c <count>         stop after <count> replies\n"
+									"  -D                 print timestamps\n"
+									"  -h                 print help and exit\n"
+									"  -i <interval>      seconds between sending each packet\n"
+									"  -n                 no dns name resolution\n"
+									"  -q                 quiet output\n"
+									"  -s <size>          use <size> as number of data bytes to be sent\n"
+									"  -t <ttl>           define time to live\n"
+									"  -v                 verbose output\n";
 
 	fprintf(stderr, "%s\n", message);
 	exit(EXIT_FAILURE);

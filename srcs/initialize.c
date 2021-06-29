@@ -15,8 +15,8 @@ packet_has_been_received(void) {
 	return (g_ping.stats.tail->data.received);
 }
 
-static void
-signal_handler(int signal) {
+void
+display_statistics_exit(int signal) {
 	(void)signal;
 	struct timeval	now;
 
@@ -59,6 +59,9 @@ initialize_options(void) {
 		if (option->value + slen(option->value) != end) print_argument_garbage(end);
 		if (g_ping.interval_second < 0.2) print_error_exit("ft_ping: cannot flood, minimal interval allowed is 200ms");
 	}
+	if ((option = get_option(g_ping.options, 'c'))->active) {
+		g_ping.count = parse_int(option->value, 1, INT_MAX);
+	}
 }
 
 
@@ -78,8 +81,6 @@ initialize_packet(void * packet, size_t packet_size) {
     mset(packet, packet_size, 0);
     header->type = ICMP_ECHO;
     header->un.echo.id = g_ping.pid;
-    header->un.echo.sequence = g_ping.msg_count;
-    header->checksum = checksum(packet, packet_size);
 }
 
 void
@@ -95,15 +96,16 @@ initialize_config(char ** av) {
 	g_ping.packet_msg_size = 56;
 	g_ping.ttl = 64;
 	g_ping.interval_second = 1;
+	g_ping.count = -1;
 	load_available_options(g_ping.options);
 	parse_arguments(av + 1);
+	if (get_option(g_ping.options, 'h')->active) usage();
 	initialize_options();
-	if (g_ping.host == NULL || get_option(g_ping.options, 'h')->active) usage();
+	if (g_ping.host == NULL) usage();
 	g_ping.socket_fd = socket(PF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (g_ping.socket_fd == -1) print_error_exit("Socket file descriptor not received");
     g_ping.pid = getpid();
-    g_ping.msg_count = 1;
 	list_initialize(&g_ping.stats);
-	signal(SIGINT, signal_handler);
+	signal(SIGINT, display_statistics_exit);
 	print_options(); // <---- debug
 }

@@ -19,8 +19,7 @@
 
 # include "list.h"
 
-# define OPTION_NUMBER 5
-# define START_CACHE 1000
+# define OPTION_NUMBER 6
 
 typedef struct	s_option
 {
@@ -38,17 +37,18 @@ typedef struct  s_ping_infos
 	t_option				options[OPTION_NUMBER];
 	char					ip[NI_MAXHOST];
 	int						pid;
-	size_t					msg_count;
-	size_t					msg_received_count;
-	size_t					packet_msg_size;
+	ssize_t					msg_count;
+	ssize_t					msg_received_count;
+	ssize_t					packet_msg_size;
 	void *					sent_packet_tracker;
 	void *					recv_buffer;
 	t_list					stats;
 	struct timeval			start;
 	char					reverse_dns[NI_MAXHOST];
-	size_t					duplicate;
-	size_t					error;
+	ssize_t					duplicate;
+	ssize_t					error;
 	int						ttl;
+	int						count;
 	double					interval_second;
 }               t_ping_infos;
 

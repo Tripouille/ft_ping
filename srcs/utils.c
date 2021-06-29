@@ -57,11 +57,12 @@ parse_int(char const * s, int min, int max)
 	while (s[i] && s[i] >= '0' && s[i] <= '9'
 	&& ((!is_negative && value <= max) || (is_negative && -value >= min)))
 		value = value * 10 + s[i++] - '0';
-	if (s[i]) {
-		if ((!is_negative && value > max) || (is_negative && -value < min))
-			fprintf(stderr, "ft_ping: invalid argument: %s: out of range: %i <= value <= %i\n", s, min, max);
-		else
-			fprintf(stderr, "ft_ping: invalid argument: %s\n", s);
+	if ((!is_negative && value > max)  || (!is_negative && value < min) || (is_negative && -value < min)) {
+		fprintf(stderr, "ft_ping: invalid argument: %s: out of range: %i <= value <= %i\n", s, min, max);
+		exit(EXIT_FAILURE);
+	}
+	else if (s[i]) {
+		fprintf(stderr, "ft_ping: invalid argument: %s\n", s);
 		exit(EXIT_FAILURE);
 	}
 	return (value * (is_negative ? -1 : 1));
