@@ -95,7 +95,7 @@ wait_ping_reply(size_t packet_size) {
 		icmp_header->checksum = 0;
 		inet_ntop(AF_INET, &ip_header->saddr, sender_ip, sizeof(sender_ip));
 		if (icmp_header->type == ICMP_ECHOREPLY && icmp_header->code == ICMP_ECHOREPLY
-		&& icmp_header->un.echo.id == g_ping.pid && icmp_header->un.echo.sequence > 0
+		&& icmp_header->un.echo.id == g_ping.pid
 		&& checksum(icmp_header, recv_packet_size - sizeof(struct iphdr)) == recv_checksum) {
 			t_packet_tracker * tracker = list_get_tracker(&g_ping.stats, icmp_header->un.echo.sequence);
 			struct timeval now;
