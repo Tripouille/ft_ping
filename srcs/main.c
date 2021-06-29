@@ -55,13 +55,11 @@ display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
 		printf("From %s (%s) icmp_seq=%li %s\n",
 			reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
 			g_ping.msg_count, get_type_information(icmp_header->type));
-	++g_ping.error;
 }
 
 static void
 display_reply(double time, struct iphdr * ip_header, struct icmphdr * icmp_header,
-char const * sender_ip, size_t recv_packet_size) {
-	if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
+char const * sender_ip, size_t recv_packet_size, bool already_received) {
 	if (reverse_dns_lookup(sender_ip))
 		printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), g_ping.reverse_dns, sender_ip,
@@ -70,18 +68,17 @@ char const * sender_ip, size_t recv_packet_size) {
 		printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), sender_ip,
 			icmp_header->un.echo.sequence, ip_header->ttl, time);
-	if (icmp_header->un.echo.sequence > g_ping.last_sequence_received) {
-		g_ping.last_sequence_received = icmp_header->un.echo.sequence;
-		++g_ping.msg_received_count;
-		printf("\n");
-	} else if (icmp_header->un.echo.sequence == g_ping.last_sequence_received) {
+	if (already_received) {
 		++g_ping.duplicate;
 		printf(" (DUP!)\n");
+	} else {
+		++g_ping.msg_received_count;
+		printf("\n");
 	}
 }
 
 static void
-wait_ping_reply(struct timeval const start_cache[], size_t packet_size) {
+wait_ping_reply(size_t packet_size) {
 	struct iphdr *			ip_header;
 	struct icmphdr *		icmp_header;
 	ssize_t					recv_packet_size;
@@ -100,13 +97,18 @@ wait_ping_reply(struct timeval const start_cache[], size_t packet_size) {
 		if (icmp_header->type == ICMP_ECHOREPLY && icmp_header->code == ICMP_ECHOREPLY
 		&& icmp_header->un.echo.id == g_ping.pid && icmp_header->un.echo.sequence > 0
 		&& checksum(icmp_header, recv_packet_size - sizeof(struct iphdr)) == recv_checksum) {
+			t_packet_tracker * tracker = list_get_tracker(&g_ping.stats, icmp_header->un.echo.sequence);
 			struct timeval now;
 
+			if (tracker == NULL) return ;
 			gettimeofday(&now, NULL);
-			display_reply(get_elapsed_us(start_cache + (icmp_header->un.echo.sequence - 1) % START_CACHE, &now) / 1E3,
-				ip_header, icmp_header, sender_ip, recv_packet_size);
-		} else if (icmp_header->code == ICMP_ECHOREPLY)
+			tracker->travel_time = get_elapsed_us(&tracker->sent_timeval, &now) / 1E3;
+			display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
+			tracker->received = true;
+		} else if (icmp_header->code == ICMP_ECHOREPLY) {
 			display_type_information(icmp_header, sender_ip);
+			++g_ping.error;
+		}
 	}
 }
 
@@ -122,25 +124,28 @@ actualize_packet(void * packet, size_t packet_size) {
 static void
 send_ping_request(void) {
 	size_t				packet_size = sizeof(struct icmphdr) + g_ping.packet_msg_size;
-	struct timeval		start_cache[START_CACHE], now;
+	struct timeval		now;
+	t_packet_tracker	tracker;
 
-	if ((g_ping.sent_packet = malloc(packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
+	if ((g_ping.sent_packet_tracker = malloc(packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
 	if ((g_ping.recv_buffer = malloc(sizeof(struct iphdr) + packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
 	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip, g_ping.packet_msg_size, sizeof(struct iphdr) + packet_size);
-	initialize_packet(g_ping.sent_packet, packet_size);
+	initialize_packet(g_ping.sent_packet_tracker, packet_size);
 	gettimeofday(&g_ping.start, NULL);
 	while(true) {
-		struct timeval * actual_start = start_cache + (g_ping.msg_count - 1) % START_CACHE;
-		gettimeofday(actual_start, NULL);
+		gettimeofday(&tracker.sent_timeval, NULL);
+		tracker.sequence = g_ping.msg_count;
+		tracker.received = false;
+		if (list_push(&g_ping.stats, tracker) == NULL) print_error_exit("ft_ping: Out of memory");
 		gettimeofday(&now, NULL);
-		if (sendto(g_ping.socket_fd, g_ping.sent_packet, packet_size, 0,
+		if (sendto(g_ping.socket_fd, g_ping.sent_packet_tracker, packet_size, 0,
 		(struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
-			while (get_elapsed_us(actual_start, &now) / 1E6 < g_ping.interval_second) {
-				wait_ping_reply(start_cache, packet_size);
+			do {
+				wait_ping_reply(packet_size);
 				gettimeofday(&now, NULL);
-			}
+			} while (get_elapsed_us(&tracker.sent_timeval, &now) / 1E6 < g_ping.interval_second);
 		}
-		actualize_packet(g_ping.sent_packet, packet_size);
+		actualize_packet(g_ping.sent_packet_tracker, packet_size);
 	}
 }
 

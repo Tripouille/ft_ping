@@ -41,12 +41,11 @@ typedef struct  s_ping_infos
 	size_t					msg_count;
 	size_t					msg_received_count;
 	size_t					packet_msg_size;
-	void *					sent_packet;
+	void *					sent_packet_tracker;
 	void *					recv_buffer;
 	t_list					stats;
 	struct timeval			start;
 	char					reverse_dns[NI_MAXHOST];
-	int						last_sequence_received;
 	size_t					duplicate;
 	size_t					error;
 	int						ttl;

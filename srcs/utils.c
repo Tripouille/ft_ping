@@ -2,7 +2,7 @@
 
 void
 print_error_exit(char const * msg) {
-	free(g_ping.sent_packet);
+	free(g_ping.sent_packet_tracker);
 	free(g_ping.recv_buffer);
 	list_destroy(&g_ping.stats);
 	fprintf(stderr, "%s\n", msg);

@@ -7,6 +7,14 @@ print_options(void) {
 	}
 }
 
+static bool
+packet_has_been_received(void) {
+	for (t_list_element * element = g_ping.stats.head;
+	element != g_ping.stats.tail; element = element->next)
+		if (element->data.received) return (true);
+	return (g_ping.stats.tail->data.received);
+}
+
 static void
 signal_handler(int signal) {
 	(void)signal;
@@ -19,12 +27,12 @@ signal_handler(int signal) {
 	if (g_ping.error) printf("+%li errors, ", g_ping.error);
 	printf("%g%% packet loss, time %.fms\n", 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
 		get_elapsed_us(&g_ping.start, &now) / 1E3);
-	if (g_ping.stats.size) {
+	if (packet_has_been_received()) {
 		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
 			list_get_smallest(&g_ping.stats), list_get_average(&g_ping.stats),
 			list_get_biggest(&g_ping.stats), list_get_mdev(&g_ping.stats));
 	}
-	free(g_ping.sent_packet);
+	free(g_ping.sent_packet_tracker);
 	free(g_ping.recv_buffer);
 	list_destroy(&g_ping.stats);
 	exit(EXIT_SUCCESS);
@@ -49,14 +57,14 @@ initialize_options(void) {
 		char * end;
 		g_ping.interval_second = strtod(option->value, &end);
 		if (option->value + slen(option->value) != end) print_argument_garbage(end);
-		//if (g_ping.interval_second < 0.2) print_error_exit("ft_ping: cannot flood, minimal interval allowed is 200ms");
+		if (g_ping.interval_second < 0.2) print_error_exit("ft_ping: cannot flood, minimal interval allowed is 200ms");
 	}
 }
 
 
 void
 initialize_socket(void) {
-    struct timeval	timeout = {0, 1E3};
+    struct timeval	timeout = {0, 1E4};
 
     setsockopt(g_ping.socket_fd, SOL_IP, IP_TTL, &g_ping.ttl, sizeof(g_ping.ttl));
     setsockopt(g_ping.socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));

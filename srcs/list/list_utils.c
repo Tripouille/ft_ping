@@ -1,24 +1,24 @@
 #include "list.h"
 
 t_list_element	*
-create_list_element(double value, t_list_element * prev,
+create_list_element(t_packet_tracker data, t_list_element * prev,
 									t_list_element * next) {
 	t_list_element	*new_list_element;
 
 	new_list_element = malloc(sizeof(*new_list_element));
 	if (new_list_element == NULL)
 		return (NULL);
-	new_list_element->value = value;
+	new_list_element->data = data;
 	new_list_element->prev = prev;
 	new_list_element->next = next;
 	return (new_list_element);
 }
 
 t_list_element	*
-list_inject(t_list * list, double value) {
+list_inject(t_list * list, t_packet_tracker data) {
 	t_list_element	* new_list_element;
 
-	new_list_element = create_list_element(value, list->tail, list->head);
+	new_list_element = create_list_element(data, list->tail, list->head);
 	if (new_list_element == NULL) {
 		list_destroy(list);
 		return (NULL);
