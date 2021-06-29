@@ -18,7 +18,7 @@ signal_handler(int signal) {
 	if (g_ping.duplicate) printf("+%li duplicates, ", g_ping.duplicate);
 	if (g_ping.error) printf("+%li errors, ", g_ping.error);
 	printf("%g%% packet loss, time %.fms\n", 100.0 - (g_ping.msg_received_count / (double)g_ping.msg_count * 100),
-			get_elapsed_us(&g_ping.start, &now) / 1E3);
+		get_elapsed_us(&g_ping.start, &now) / 1E3);
 	if (g_ping.stats.size) {
 		printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
 			list_get_smallest(&g_ping.stats), list_get_average(&g_ping.stats),

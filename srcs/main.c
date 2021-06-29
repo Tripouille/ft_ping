@@ -50,6 +50,37 @@ get_type_information(int type) {
 }
 
 static void
+display_reply(double time, struct iphdr * ip_header, struct icmphdr * icmp_header,
+char const * sender_ip, size_t recv_packet_size) {
+	if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
+	if (reverse_dns_lookup(sender_ip))
+		printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
+			recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
+			icmp_header->un.echo.sequence, ip_header->ttl, time);
+	else
+		printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
+			recv_packet_size - IPV4_HEADER, sender_ip,
+			icmp_header->un.echo.sequence, ip_header->ttl, time);
+	if (icmp_header->un.echo.sequence > g_ping.last_sequence_received) {
+		g_ping.last_sequence_received = icmp_header->un.echo.sequence;
+		++g_ping.msg_received_count;
+		printf("\n");
+	} else {
+		++g_ping.duplicate;
+		printf(" (DUP!)\n");
+	}
+}
+
+static void
+display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
+	if (get_option(g_ping.options, 'v')->active)
+		printf("From %s (%s) icmp_seq=%li %s\n",
+			reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
+			g_ping.msg_count, get_type_information(icmp_header->type));
+	++g_ping.error;
+}
+
+static void
 wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packet_size) {
 	struct iphdr *			ip_header;
 	struct icmphdr *		icmp_header;
@@ -70,31 +101,9 @@ wait_ping_reply(struct timeval const * start, struct timeval * end, size_t packe
 		&& icmp_header->un.echo.id == g_ping.pid
 		&& checksum(icmp_header, recv_packet_size - IPV4_HEADER) == recv_checksum) {
 			gettimeofday(end, NULL);
-			double time = get_elapsed_us(start, end) / 1E3;
-			if (list_push(&g_ping.stats, time) == NULL) print_error_exit("ft_ping: Out of memory");
-			if (reverse_dns_lookup(sender_ip))
-				printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
-					recv_packet_size - IPV4_HEADER, g_ping.reverse_dns, sender_ip,
-					icmp_header->un.echo.sequence, ip_header->ttl, time);
-			else
-				printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
-					recv_packet_size - IPV4_HEADER, sender_ip,
-					icmp_header->un.echo.sequence, ip_header->ttl, time);
-			if (icmp_header->un.echo.sequence > g_ping.last_sequence_received) {
-				g_ping.last_sequence_received = icmp_header->un.echo.sequence;
-				++g_ping.msg_received_count;
-				printf("\n");
-			} else {
-				++g_ping.duplicate;
-				printf(" (DUP!)\n");
-			}
-		} else if (icmp_header->code == ICMP_ECHOREPLY) {
-			if (get_option(g_ping.options, 'v')->active)
-				printf("From %s (%s) icmp_seq=%li %s\n",
-					reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
-					g_ping.msg_count, get_type_information(icmp_header->type));
-			++g_ping.error;
-		}
+			display_reply(get_elapsed_us(start, end) / 1E3, ip_header, icmp_header, sender_ip, recv_packet_size);
+		} else if (icmp_header->code == ICMP_ECHOREPLY)
+			display_type_information(icmp_header, sender_ip);
 	}
 }
 
@@ -114,8 +123,7 @@ send_ping_request(void) {
 
 	if ((g_ping.sent_packet = malloc(packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
 	if ((g_ping.recv_buffer = malloc(IPV4_HEADER + packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
-	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip,
-		g_ping.packet_msg_size, IPV4_HEADER + packet_size);
+	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip, g_ping.packet_msg_size, IPV4_HEADER + packet_size);
 	initialize_packet(g_ping.sent_packet, packet_size);
 	gettimeofday(&g_ping.start, NULL);
 	while(true) {
@@ -143,23 +151,3 @@ main(int ac, char ** av) {
 	send_ping_request();
 	return (0);
 }
-
-/*
-◦ getpid.
-◦ getuid.
-◦ getaddrinfo.
-◦ gettimeofday.
-◦ inet_ntop.
-◦ inet_pton
-◦ exit.
-◦ signal.
-◦ alarm.
-◦ setsockopt.
-◦ recvmsg.
-◦ sendto.
-◦ socket.
-◦ les fonctions de la famille printf.
-◦ Vous avez l’autorisation d’utiliser d’autres fonctions dans le cadre de vos bonus,
-à condition que leur utilisation soit dûment justifiée lors de votre correction.
-Soyez malins.
-*/
