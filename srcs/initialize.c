@@ -31,6 +31,11 @@ signal_handler(int signal) {
 }
 
 static void
+print_argument_garbage(char const * value) {
+	printf("ft_ping: option argument contains garbage: %s\n", value);
+}
+
+static void
 initialize_options(void) {
 	t_option *		option;
 
@@ -39,6 +44,12 @@ initialize_options(void) {
 	if ((option = get_option(g_ping.options, 't'))->active) {
 		g_ping.ttl = parse_int(option->value, 0, 255);
 		if (!g_ping.ttl) print_error_exit("ft_ping: cannot set unicast time-to-live: Invalid argument");
+	}
+	if ((option = get_option(g_ping.options, 'i'))->active) {
+		char * end;
+		g_ping.interval_second = strtod(option->value, &end);
+		if (option->value + slen(option->value) != end) print_argument_garbage(end);
+		//if (g_ping.interval_second < 0.2) print_error_exit("ft_ping: cannot flood, minimal interval allowed is 200ms");
 	}
 }
 
@@ -75,6 +86,7 @@ initialize_config(char ** av) {
 	mset(&g_ping, sizeof(g_ping), 0);
 	g_ping.packet_msg_size = 56;
 	g_ping.ttl = 64;
+	g_ping.interval_second = 1;
 	load_available_options(g_ping.options);
 	parse_arguments(av + 1);
 	initialize_options();

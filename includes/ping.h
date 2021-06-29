@@ -19,10 +19,8 @@
 
 # include "list.h"
 
-# define IPV4_HEADER 20
-# define PING_REQUEST_DELAY_US (1E6)
-# define OPTION_NUMBER 4
-
+# define OPTION_NUMBER 5
+# define START_CACHE 1000
 
 typedef struct	s_option
 {
@@ -52,6 +50,7 @@ typedef struct  s_ping_infos
 	size_t					duplicate;
 	size_t					error;
 	int						ttl;
+	double					interval_second;
 }               t_ping_infos;
 
 extern t_ping_infos g_ping;

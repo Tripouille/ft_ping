@@ -29,10 +29,13 @@ parse_arguments(char ** args);
 void
 usage(void);
 
-size_t
+double
 get_elapsed_us(struct timeval const * start, struct timeval const * end);
 
 int
 parse_int(char const *s, int min, int max);
+
+size_t
+slen(char const * s);
 
 #endif

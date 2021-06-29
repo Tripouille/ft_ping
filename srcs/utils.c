@@ -38,7 +38,7 @@ checksum(void * data, size_t len) {
 	return (~sum);
 }
 
-size_t
+double
 get_elapsed_us(struct timeval const * start, struct timeval const * end) {
 	return ((end->tv_sec - start->tv_sec) * 1E6 + (end->tv_usec - start->tv_usec));
 }
@@ -65,4 +65,12 @@ parse_int(char const * s, int min, int max)
 		exit(EXIT_FAILURE);
 	}
 	return (value * (is_negative ? -1 : 1));
+}
+
+size_t
+slen(char const * s) {
+	size_t len = 0;
+
+	while(s[len]) ++len;
+	return (len);
 }
