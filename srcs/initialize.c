@@ -85,7 +85,6 @@ initialize_msg(struct msghdr * msg, struct iovec * iov) {
 
 void
 initialize_config(char ** av) {
-	mset(&g_ping, sizeof(g_ping), 0);
 	g_ping.packet_msg_size = 56;
 	g_ping.ttl = 64;
 	g_ping.interval_second = 1;

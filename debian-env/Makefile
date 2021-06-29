@@ -10,12 +10,6 @@ db:
 	@docker build -t $(IMAGE) .
 
 dr:
-	@docker run -it --rm -v $(PARENT_PATH):/debian-env-$(PARENT_NAME) -w /debian-env-$(PARENT_NAME) --privileged --name $(CONTAINER) $(IMAGE) zsh
+	@docker run -it --rm -v $(PARENT_PATH):/debian-env-$(PARENT_NAME) -w /debian-env-$(PARENT_NAME) --privileged --name $(CONTAINER)2 $(IMAGE) zsh
 
-bcon:
-	@sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
-
-bcoff:
-	@sysctl net.ipv4.icmp_echo_ignore_broadcasts=1
-
-.PHONY: all db dr bcon bcoff
+.PHONY: all db dr

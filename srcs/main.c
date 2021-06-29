@@ -109,7 +109,7 @@ wait_ping_reply(size_t packet_size) {
 			if (!get_option(g_ping.options, 'q')->active)
 				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
 			tracker->received = true;
-		} else if (icmp_header->code == ICMP_ECHOREPLY) {
+		} else if (icmp_header->code == ICMP_ECHOREPLY && ip_header->daddr != g_ping.addr_con.sin_addr.s_addr) {
 			if (!get_option(g_ping.options, 'q')->active)
 				display_type_information(icmp_header, sender_ip);
 			++g_ping.error;

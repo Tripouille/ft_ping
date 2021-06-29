@@ -24,5 +24,11 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re db dr
+bcon:
+	@sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
+
+bcoff:
+	@sysctl net.ipv4.icmp_echo_ignore_broadcasts=1
+
+.PHONY: all clean fclean re bcon bcoff
 -include $(DEPS)
