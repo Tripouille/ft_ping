@@ -5,16 +5,16 @@ list_get_smallest(t_list const * list) {
 	t_list_element	*smallest;
 	t_list_element	*element;
 
-	smallest = list->head;
+	smallest = NULL;
 	element = list->head;
 	while (element != list->tail) {
 		if (element->data.received
-		&& element->data.travel_time < smallest->data.travel_time)
+		&& (smallest == NULL || element->data.travel_time < smallest->data.travel_time))
 			smallest = element;
 		element = element->next;
 	}
 	if (list->tail->data.received
-	&& list->tail->data.travel_time < smallest->data.travel_time)
+	&& (smallest == NULL || list->tail->data.travel_time < smallest->data.travel_time))
 		return (list->tail->data.travel_time);
 	return (smallest->data.travel_time);
 }
@@ -24,16 +24,16 @@ list_get_biggest(t_list const * list) {
 	t_list_element	*biggest;
 	t_list_element	*element;
 
-	biggest = list->head;
+	biggest = NULL;
 	element = list->head;
 	while (element != list->tail) {
 		if (element->data.received
-		&& element->data.travel_time > biggest->data.travel_time)
+		&& (biggest == NULL || element->data.travel_time > biggest->data.travel_time))
 			biggest = element;
 		element = element->next;
 	}
 	if (list->tail->data.received
-	&& list->tail->data.received > biggest->data.travel_time)
+	&& (biggest == NULL || list->tail->data.received > biggest->data.travel_time))
 		return (list->tail->data.travel_time);
 	return (biggest->data.travel_time);
 }
