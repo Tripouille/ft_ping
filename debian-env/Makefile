@@ -10,6 +10,6 @@ db:
 	@docker build -t $(IMAGE) .
 
 dr:
-	@docker run -it --rm -v $(PARENT_PATH):/debian-env-$(PARENT_NAME) -w /debian-env-$(PARENT_NAME) --privileged --name $(CONTAINER)2 $(IMAGE) zsh
+	@docker run -it --rm -v $(PARENT_PATH):/debian-env-$(PARENT_NAME) -w /debian-env-$(PARENT_NAME) --privileged --name $(CONTAINER) $(IMAGE) zsh
 
 .PHONY: all db dr

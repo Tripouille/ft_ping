@@ -93,6 +93,7 @@ wait_ping_reply(size_t packet_size) {
 	if ((recv_packet_size = recvmsg(g_ping.socket_fd, &msg, 0)) != -1) {
 		ip_header = g_ping.recv_buffer;
 		icmp_header = g_ping.recv_buffer + sizeof(struct iphdr);
+		icmp_header = g_ping.recv_buffer + recv_packet_size - packet_size;
 		uint16_t recv_checksum = icmp_header->checksum;
 
 		icmp_header->checksum = 0;
@@ -109,7 +110,8 @@ wait_ping_reply(size_t packet_size) {
 			if (!get_option(g_ping.options, 'q')->active)
 				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
 			tracker->received = true;
-		} else if (icmp_header->code == ICMP_ECHOREPLY && ip_header->daddr != g_ping.addr_con.sin_addr.s_addr) {
+		} else if (icmp_header->code == ICMP_ECHOREPLY && ip_header->daddr != g_ping.addr_con.sin_addr.s_addr
+		&& ((struct icmphdr *)(g_ping.recv_buffer + (sizeof(struct iphdr) * 2) + sizeof(struct icmphdr)))->un.echo.id == g_ping.pid) {
 			if (!get_option(g_ping.options, 'q')->active)
 				display_type_information(icmp_header, sender_ip);
 			++g_ping.error;
@@ -147,10 +149,11 @@ send_ping_request(void) {
 		if (sendto(g_ping.socket_fd, g_ping.sent_packet_tracker, packet_size, 0,
 		(struct sockaddr*)&g_ping.addr_con, sizeof(g_ping.addr_con)) != -1) {
 			do {
-				wait_ping_reply(packet_size);
 				gettimeofday(&now, NULL);
+				wait_ping_reply(packet_size);
 			} while (get_elapsed_us(&tracker.sent_timeval, &now) / 1E6 < g_ping.interval_second);
-		}
+		} else while (get_elapsed_us(&tracker.sent_timeval, &now) / 1E6 < g_ping.interval_second)
+			gettimeofday(&now, NULL);;
 	}
 	display_statistics_exit(0);
 }
