@@ -88,12 +88,11 @@ wait_ping_reply(size_t packet_size) {
 	char					sender_ip[NI_MAXHOST];
 
 	struct msghdr msg;
-	struct iovec iov = {g_ping.recv_buffer, sizeof(struct iphdr) + packet_size};
+	struct iovec iov = {g_ping.recv_buffer, sizeof(struct iphdr) * 2 + sizeof(struct icmphdr) + packet_size};
 	initialize_msg(&msg, &iov);
 	if ((recv_packet_size = recvmsg(g_ping.socket_fd, &msg, 0)) != -1) {
 		ip_header = g_ping.recv_buffer;
 		icmp_header = g_ping.recv_buffer + sizeof(struct iphdr);
-		icmp_header = g_ping.recv_buffer + recv_packet_size - packet_size;
 		uint16_t recv_checksum = icmp_header->checksum;
 
 		icmp_header->checksum = 0;
@@ -134,8 +133,10 @@ send_ping_request(void) {
 	struct timeval		now;
 	t_packet_tracker	tracker;
 
-	if ((g_ping.sent_packet_tracker = malloc(packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
-	if ((g_ping.recv_buffer = malloc(sizeof(struct iphdr) + packet_size)) == NULL) print_error_exit("ft_ping: Out of memory");
+	if ((g_ping.sent_packet_tracker = malloc(packet_size)) == NULL)
+		print_error_exit("ft_ping: Out of memory");
+	if ((g_ping.recv_buffer = malloc(sizeof(struct iphdr) * 2 + sizeof(struct icmphdr) + packet_size)) == NULL)
+		print_error_exit("ft_ping: Out of memory");
 	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip, g_ping.packet_msg_size, sizeof(struct iphdr) + packet_size);
 	initialize_packet(g_ping.sent_packet_tracker, packet_size);
 	gettimeofday(&g_ping.start, NULL);
