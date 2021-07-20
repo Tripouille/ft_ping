@@ -21,7 +21,7 @@ dns_lookup(void) {
 	struct sockaddr_in * address;
 
 	if (getaddrinfo(g_ping.host, NULL, NULL, &info)) {
-		fprintf(stderr, "ping: %s: Name or service not known\n", g_ping.host);
+		fprintf(stderr, "ft_ping: %s: Name or service not known\n", g_ping.host);
 		exit(EXIT_FAILURE);
 	}
 	address = (struct sockaddr_in*)info->ai_addr;
