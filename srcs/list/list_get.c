@@ -41,12 +41,19 @@ list_get_biggest(t_list const * list) {
 double
 list_get_average(t_list const * list) {
 	double				total = 0;
+	int					received_packets = 0;
 
 	for (t_list_element const * element = list->head;
 	element != list->tail; element = element->next)
-		if (element->data.received) total += element->data.travel_time;
-	if (list->tail->data.received) total += list->tail->data.travel_time;
-	return (total / list->size);
+		if (element->data.received) {
+			total += element->data.travel_time;
+			++received_packets;
+		}
+	if (list->tail->data.received) {
+		total += list->tail->data.travel_time;
+		++received_packets;
+	}
+	return (total / received_packets);
 }
 
 static double
@@ -57,13 +64,20 @@ absolute(double value) {
 double
 list_get_mdev(t_list const * list) {
 	double				total_dev = 0;
+	int					received_packets = 0;
 	double				average = list_get_average(list);
 
 	for (t_list_element const * element = list->head;
 	element != list->tail; element = element->next)
-		if (element->data.received) total_dev += absolute(element->data.travel_time - average);
-	if (list->tail->data.received) total_dev += absolute(list->tail->data.travel_time - average);
-	return (total_dev / list->size);
+		if (element->data.received) {
+			total_dev += absolute(element->data.travel_time - average);
+			++received_packets;
+		}
+	if (list->tail->data.received) {
+		total_dev += absolute(list->tail->data.travel_time - average);
+		++received_packets;
+	}
+	return (total_dev / received_packets);
 }
 
 t_packet_tracker *
