@@ -62,7 +62,7 @@ display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
 
 static void
 display_reply(double time, struct iphdr * ip_header, struct icmphdr * icmp_header,
-char const * sender_ip, size_t recv_packet_size, bool already_received) {
+char const * sender_ip, size_t recv_packet_size, bool already_received, bool damaged) {
 	if (!get_option(g_ping.options, 'n')->active && reverse_dns_lookup(sender_ip))
 		printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), g_ping.reverse_dns, sender_ip,
@@ -71,13 +71,17 @@ char const * sender_ip, size_t recv_packet_size, bool already_received) {
 		printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), sender_ip,
 			icmp_header->un.echo.sequence, ip_header->ttl, time);
-	if (already_received) {
-		++g_ping.duplicate;
-		printf(" (DUP!)\n");
-	} else {
-		++g_ping.msg_received_count;
-		printf("\n");
-	}
+	
+	if (damaged) printf(" (DAM!)\n");
+	else if (already_received) printf(" (DUP!)\n");
+	else printf("\n");
+}
+
+static void
+actualize_stats(bool already_received, bool damaged) {
+	if (damaged) ++g_ping.error;
+	else if (already_received) ++g_ping.duplicate;
+	else ++g_ping.msg_received_count;
 }
 
 static void
@@ -98,16 +102,18 @@ wait_ping_reply(size_t packet_size) {
 		icmp_header->checksum = 0;
 		inet_ntop(AF_INET, &ip_header->saddr, sender_ip, sizeof(sender_ip));
 		if (icmp_header->type == ICMP_ECHOREPLY && icmp_header->code == ICMP_ECHOREPLY
-		&& icmp_header->un.echo.id == g_ping.pid
-		&& checksum(icmp_header, recv_packet_size - sizeof(struct iphdr)) == recv_checksum) {
+		&& icmp_header->un.echo.id == g_ping.pid) {
 			t_packet_tracker * tracker = list_get_tracker(&g_ping.stats, icmp_header->un.echo.sequence);
-			struct timeval now;
-
 			if (tracker == NULL) return ;
+			struct timeval now;
 			gettimeofday(&now, NULL);
 			tracker->travel_time = get_elapsed_us(&tracker->sent_timeval, &now) / 1E3;
+			bool packet_is_damaged = checksum(icmp_header, recv_packet_size - sizeof(struct iphdr)) != recv_checksum;
+
 			if (!get_option(g_ping.options, 'q')->active)
-				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size, tracker->received);
+				display_reply(tracker->travel_time, ip_header, icmp_header, sender_ip, recv_packet_size,
+								tracker->received, packet_is_damaged);
+			actualize_stats(tracker->received, packet_is_damaged);
 			tracker->received = true;
 		} else if (icmp_header->code == ICMP_ECHOREPLY && ip_header->daddr != g_ping.addr_con.sin_addr.s_addr
 		&& ((struct icmphdr *)(g_ping.recv_buffer + (sizeof(struct iphdr) * 2) + sizeof(struct icmphdr)))->un.echo.id == g_ping.pid) {
@@ -140,7 +146,7 @@ send_ping_request(void) {
 	printf("PING %s (%s) %li(%li) bytes of data.\n", g_ping.host, g_ping.ip, g_ping.packet_msg_size, sizeof(struct iphdr) + packet_size);
 	initialize_packet(g_ping.sent_packet_tracker, packet_size);
 	gettimeofday(&g_ping.start, NULL);
-	while(g_ping.msg_count < g_ping.count || !get_option(g_ping.options, 'c')->active) {
+	while(!get_option(g_ping.options, 'c')->active || g_ping.msg_count < g_ping.count) {
 		actualize_packet(g_ping.sent_packet_tracker, packet_size);
 		gettimeofday(&tracker.sent_timeval, NULL);
 		tracker.sequence = g_ping.msg_count;
@@ -163,7 +169,7 @@ int
 main(int ac, char ** av) {
 	(void)ac;
 	if (getuid())
-		print_error_exit("ft_ping: must be run as root.");
+		print_error_exit("ft_ping: must be run as root");
 	initialize_config(av);
 	dns_lookup();
 	initialize_socket();
