@@ -5,7 +5,7 @@ packet_has_been_received(void) {
 	for (t_list_element * element = g_ping.stats.head;
 	element != g_ping.stats.tail; element = element->next)
 		if (element->data.received) return (true);
-	return (g_ping.stats.tail->data.received);
+	return (g_ping.stats.tail && g_ping.stats.tail->data.received);
 }
 
 void
