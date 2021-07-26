@@ -53,10 +53,10 @@ static void
 display_type_information(struct icmphdr * icmp_header, char const * sender_ip) {
 	if (get_option(g_ping.options, 'v')->active) {
 		if (!get_option(g_ping.options, 'n')->active)
-			printf("From %s (%s) icmp_seq=%li %s\n", reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
+			printf("From %s (%s): icmp_seq=%li %s\n", reverse_dns_lookup(sender_ip) ? g_ping.reverse_dns : sender_ip, sender_ip,
 				g_ping.msg_count, get_type_information(icmp_header->type));
 		else
-			printf("From %s icmp_seq=%li %s\n", sender_ip, g_ping.msg_count, get_type_information(icmp_header->type));
+			printf("From %s: icmp_seq=%li %s\n", sender_ip, g_ping.msg_count, get_type_information(icmp_header->type));
 	}
 }
 
@@ -64,11 +64,11 @@ static void
 display_reply(double time, struct iphdr * ip_header, struct icmphdr * icmp_header,
 char const * sender_ip, size_t recv_packet_size, bool already_received, bool damaged) {
 	if (!get_option(g_ping.options, 'n')->active && reverse_dns_lookup(sender_ip))
-		printf("%li bytes from %s (%s): msg_seq=%i ttl=%i time=%.1f ms",
+		printf("%li bytes from %s (%s): icmp_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), g_ping.reverse_dns, sender_ip,
 			icmp_header->un.echo.sequence, ip_header->ttl, time);
 	else
-		printf("%li bytes from %s: msg_seq=%i ttl=%i time=%.1f ms",
+		printf("%li bytes from %s: icmp_seq=%i ttl=%i time=%.1f ms",
 			recv_packet_size - sizeof(struct iphdr), sender_ip,
 			icmp_header->un.echo.sequence, ip_header->ttl, time);
 	
